@@ -33,6 +33,12 @@ pub struct NN {
     pub activations: Vec<Mat>,
 }
 
+// impl NN {
+//     pub fn new(arch: &[usize]) -> NN {
+//         nn_alloc(arch)
+//     }
+// }
+
 pub fn sigmoidf(x: f32) -> f32 {
     return 1.0 / (1.0 + -x.exp());
 }
