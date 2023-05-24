@@ -1,25 +1,37 @@
 use rand::Rng;
 
-#[derive(Clone, Debug)]
-struct Mat {
-    rows: usize,
-    cols: usize,
-    data: Vec<Vec<f32>>,
+macro_rules! nn_input {
+    ($nn:expr) => {
+        $nn.activations[0]
+    };
+}
+
+macro_rules! nn_output {
+    ($nn:expr) => {
+        $nn.activations[$nn.count]
+    };
 }
 
 #[derive(Clone, Debug)]
-struct NN {
-    count: usize,
-    weights: Vec<Mat>,
-    biases: Vec<Mat>,
-    activations: Vec<Mat>,
+pub struct Mat {
+    pub rows: usize,
+    pub cols: usize,
+    pub data: Vec<Vec<f32>>,
 }
 
-fn sigmoidf(x: f32) -> f32 {
+#[derive(Clone, Debug)]
+pub struct NN {
+    pub count: usize,
+    pub weights: Vec<Mat>,
+    pub biases: Vec<Mat>,
+    pub activations: Vec<Mat>,
+}
+
+pub fn sigmoidf(x: f32) -> f32 {
     return 1.0 / (1.0 + -x.exp());
 }
 
-fn mat_dot(dst: &mut Mat, a: &Mat, b: &Mat) {
+pub fn mat_dot(dst: &mut Mat, a: &Mat, b: &Mat) {
     assert_eq!(a.cols, b.rows);
     let n = a.cols;
     assert_eq!(dst.rows, a.rows);
@@ -36,7 +48,7 @@ fn mat_dot(dst: &mut Mat, a: &Mat, b: &Mat) {
 }
 
 // do a jest dodawane b
-fn mat_sum(a: &mut Mat, b: &Mat) {
+pub fn mat_sum(a: &mut Mat, b: &Mat) {
     assert_eq!(a.rows, b.rows);
     assert_eq!(a.cols, b.cols);
 
@@ -47,11 +59,11 @@ fn mat_sum(a: &mut Mat, b: &Mat) {
     }
 }
 
-fn rand_float(min: f32, max: f32) -> f32 {
+pub fn rand_float(min: f32, max: f32) -> f32 {
     rand::thread_rng().gen_range(min..max)
 }
 
-fn fill_mat(dst: &mut Mat, val: f32) {
+pub fn fill_mat(dst: &mut Mat, val: f32) {
     for i in 0..dst.rows {
         for j in 0..dst.cols {
             dst.data[i][j] = val;
@@ -59,7 +71,7 @@ fn fill_mat(dst: &mut Mat, val: f32) {
     }
 }
 
-fn mat_sig(dst: &mut Mat) {
+pub fn mat_sig(dst: &mut Mat) {
     for i in 0..dst.rows {
         for j in 0..dst.cols {
             dst.data[i][j] = sigmoidf(dst.data[i][j]);
@@ -67,7 +79,7 @@ fn mat_sig(dst: &mut Mat) {
     }
 }
 
-fn nn_forward(nn: &mut NN) {
+pub fn nn_forward(nn: &mut NN) {
     for i in 0..nn.count {
         let mut new_nn = nn.clone();
         mat_dot(
@@ -80,7 +92,7 @@ fn nn_forward(nn: &mut NN) {
     }
 }
 
-fn mat_row(mat: &Mat, row: usize) -> Mat {
+pub fn mat_row(mat: &Mat, row: usize) -> Mat {
     return Mat {
         rows: 1,
         cols: mat.cols,
@@ -88,7 +100,7 @@ fn mat_row(mat: &Mat, row: usize) -> Mat {
     };
 }
 
-fn mat_copy(dst: &mut Mat, src: &Mat) {
+pub fn mat_copy(dst: &mut Mat, src: &Mat) {
     assert_eq!(dst.rows, src.rows);
     assert_eq!(dst.cols, src.cols);
     for i in 0..dst.rows {
@@ -98,19 +110,7 @@ fn mat_copy(dst: &mut Mat, src: &Mat) {
     }
 }
 
-macro_rules! nn_input {
-    ($nn:expr) => {
-        $nn.activations[0]
-    };
-}
-
-macro_rules! nn_output {
-    ($nn:expr) => {
-        $nn.activations[$nn.count]
-    };
-}
-
-fn nn_cost(mut nn: NN, t_input: Mat, t_output: Mat) -> f32 {
+pub fn nn_cost(mut nn: NN, t_input: Mat, t_output: Mat) -> f32 {
     assert_eq!(t_input.rows, t_output.rows);
     assert_eq!(t_input.cols, nn.activations[nn.count].cols);
     let n = t_input.rows;
@@ -134,7 +134,7 @@ fn nn_cost(mut nn: NN, t_input: Mat, t_output: Mat) -> f32 {
     cost
 }
 
-fn nn_learn(nn: &mut NN, g: &NN, rate: f32) {
+pub fn nn_learn(nn: &mut NN, g: &NN, rate: f32) {
     for i in 0..nn.count {
         for j in 0..nn.weights[i].rows {
             for k in 0..nn.weights[i].cols {
@@ -150,7 +150,7 @@ fn nn_learn(nn: &mut NN, g: &NN, rate: f32) {
     }
 }
 
-fn nn_finite_diff(nn: &mut NN, g: &mut NN, eps: f32, ti: Mat, to: Mat) {
+pub fn nn_finite_diff(nn: &mut NN, g: &mut NN, eps: f32, ti: Mat, to: Mat) {
     let mut saved: f32;
     let c = nn_cost(nn.clone(), ti.clone(), to.clone());
 
@@ -172,6 +172,49 @@ fn nn_finite_diff(nn: &mut NN, g: &mut NN, eps: f32, ti: Mat, to: Mat) {
                 nn.biases[i].data[j][k] = saved;
             }
         }
+    }
+}
+
+pub fn nn_alloc(arch: &[usize]) -> NN {
+    assert!(!arch.is_empty());
+
+    let count = arch.len();
+
+    let mut weights = Vec::with_capacity(count);
+    let mut biases = Vec::with_capacity(count);
+    let mut activations = Vec::with_capacity(count);
+
+    activations.push(Mat {
+        rows: 1,
+        cols: arch[0],
+        data: vec![vec![0.0; arch[0]]],
+    });
+
+    for i in 1..count {
+        weights.push(Mat {
+            rows: activations[i - 1].cols,
+            cols: arch[i],
+            data: vec![vec![0.0; arch[i]]; activations[i - 1].cols],
+        });
+
+        biases.push(Mat {
+            rows: 1,
+            cols: arch[i],
+            data: vec![vec![0.0; arch[i]]],
+        });
+
+        activations.push(Mat {
+            rows: 1,
+            cols: arch[i],
+            data: vec![vec![0.0; arch[i]]],
+        });
+    }
+
+    NN {
+        count,
+        weights,
+        biases,
+        activations,
     }
 }
 
