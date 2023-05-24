@@ -12,6 +12,12 @@ macro_rules! nn_output {
     };
 }
 
+// macro_rules! mat_at {
+//     ($m:expr, $i:expr, $j:expr) => {
+//         $m.data[$i][$j]
+//     };
+// }
+
 #[derive(Clone, Debug)]
 pub struct Mat {
     pub rows: usize,
@@ -149,6 +155,30 @@ pub fn nn_learn(nn: &mut NN, g: &NN, rate: f32) {
         }
     }
 }
+
+pub fn nn_randomize(nn: &mut NN, min: f32, max: f32) {
+    for i in 1..nn.count - 1 {
+        for j in 0..nn.weights[i].rows {
+            for k in 0..nn.weights[i].cols {
+                nn.weights[i].data[j][k] = rand_float(min, max);
+            }
+        }
+
+        for j in 0..nn.biases[i].rows {
+            for k in 0..nn.biases[i].cols {
+                nn.biases[i].data[j][k] = rand_float(min, max);
+            }
+        }
+    }
+}
+
+/*
+
+NN { count: 2, weights: [Mat { rows: 1, cols: 1, data: [[0.0]] }], biases: [Mat { rows: 1, cols: 1, data: [[0.0]] }], activations: [Mat { rows: 1, cols: 1, data: [[0.0]] }, Mat { rows: 1, cols: 1, data: [[0.0]] }] }
+
+NN { count: 2, weights: [Mat { rows: 1, cols: 1, data: [[-0.17453218]] }], biases: [Mat { rows: 1, cols: 1, data: [[-0.21597385]] }], activations: [Mat { rows: 1, cols: 1, data: [[0.0]] }, Mat { rows: 1, cols: 1, data: [[0.0]] }] }
+
+*/
 
 pub fn nn_finite_diff(nn: &mut NN, g: &mut NN, eps: f32, ti: Mat, to: Mat) {
     let mut saved: f32;
