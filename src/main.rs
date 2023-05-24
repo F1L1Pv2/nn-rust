@@ -13,4 +13,6 @@ fn setup() {
     println!("{:?}", nn);
     nn_randomize(&mut nn, -1.0, 1.0);
     println!("{:?}", nn);
+    nn_forward(&mut nn);
+    println!("{:?}", nn.activations[1]);
 }

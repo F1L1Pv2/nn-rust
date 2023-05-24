@@ -86,7 +86,7 @@ pub fn mat_sig(dst: &mut Mat) {
 }
 
 pub fn nn_forward(nn: &mut NN) {
-    for i in 0..nn.count {
+    for i in 0..nn.count - 1 {
         let mut new_nn = nn.clone();
         mat_dot(
             &mut new_nn.activations[i + 1],
@@ -157,7 +157,7 @@ pub fn nn_learn(nn: &mut NN, g: &NN, rate: f32) {
 }
 
 pub fn nn_randomize(nn: &mut NN, min: f32, max: f32) {
-    for i in 1..nn.count - 1 {
+    for i in 0..nn.count - 1 {
         for j in 0..nn.weights[i].rows {
             for k in 0..nn.weights[i].cols {
                 nn.weights[i].data[j][k] = rand_float(min, max);
