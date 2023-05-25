@@ -63,20 +63,16 @@ async fn main() {
     // Use the NN struct to visualize the neural network
     let mut nn = NN {
         count: 2,
-        weights: vec![
-            Mat {
-                rows: 2,
-                cols: 1,
-                data: vec![vec![1.0], vec![1.0]],
-            },
-        ],
-        biases: vec![
-            Mat {
-                rows: 1,
-                cols: 1,
-                data: vec![vec![0.0]],
-            },
-        ],
+        weights: vec![Mat {
+            rows: 2,
+            cols: 1,
+            data: vec![vec![1.0], vec![1.0]],
+        }],
+        biases: vec![Mat {
+            rows: 1,
+            cols: 1,
+            data: vec![vec![0.0]],
+        }],
         activations: vec![
             Mat {
                 rows: 1,
@@ -90,7 +86,6 @@ async fn main() {
             },
         ],
     };
-
 
     let ti = Mat {
         rows: 4,
@@ -106,27 +101,21 @@ async fn main() {
     let to = Mat {
         rows: 4,
         cols: 1,
-        data: vec![
-            vec![0.0],
-            vec![0.0], 
-            vec![0.0], 
-            vec![1.0]
-        ],
+        data: vec![vec![0.0], vec![0.0], vec![0.0], vec![1.0]],
     };
 
     let mut g = nn.clone();
 
     println!("{:?}", nn);
-    nn_forward(&mut nn);
-    //nn_randomize(&mut nn, -1.0, 1.0);
+    // nn_forward(&mut nn);
+    NN::randomize(&mut nn, -1.0, 1.0);
     // println!("{:?}", nn);
-    println!("{:?}", nn_cost(nn.clone(), &ti, &to));
-    nn_finite_diff(&mut nn, &mut g, 1e-1, &ti, &to);
-    nn_learn(&mut nn, &g, 1.0);
-    println!("{:?}", nn_cost(nn.clone(), &ti, &to));
-    nn_finite_diff(&mut nn, &mut g, 1e-1, &ti, &to);
-    nn_learn(&mut nn, &g, 1.0);
-    println!("{:?}", nn_cost(nn.clone(), &ti, &to));
+
+    for i in 0..1000 {
+        NN::finite_diff(&mut nn, &mut g, 1e-4, &ti, &to);
+        NN::learn(&mut nn, &g, 1.0);
+        println!("i:{} cost:{:?}", i, NN::cost(nn.clone(), &ti, &to));
+    }
 
     loop {
         clear_background(LIGHTGRAY);
