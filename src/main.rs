@@ -87,7 +87,7 @@ async fn main() {
         ],
     };
 
-    let ti = Mat {
+    let t_input: Mat = Mat {
         rows: 4,
         cols: 2,
         data: vec![
@@ -98,7 +98,7 @@ async fn main() {
         ],
     };
 
-    let to = Mat {
+    let t_output = Mat {
         rows: 4,
         cols: 1,
         data: vec![vec![0.0], vec![0.0], vec![0.0], vec![1.0]],
@@ -111,10 +111,31 @@ async fn main() {
     NN::randomize(&mut nn, -1.0, 1.0);
     // println!("{:?}", nn);
 
-    for i in 0..1000 {
-        NN::finite_diff(&mut nn, &mut g, 1e-4, &ti, &to);
+    for i in 0..10000 {
+        NN::finite_diff(&mut nn, &mut g, 1e-1, &t_input, &t_output);
         NN::learn(&mut nn, &g, 1.0);
-        println!("i:{} cost:{:?}", i, NN::cost(nn.clone(), &ti, &to));
+        if i % 500 == 0 {
+            println!(
+                "i:{} cost:{:?}",
+                i,
+                NN::cost(nn.clone(), &t_input, &t_output)
+            );
+        }
+        
+    }
+
+    for i in 0..t_input.rows {
+
+        
+        nn.activations[0].data[0][0] = t_input.data[i][0];
+        nn.activations[0].data[0][1] = t_input.data[i][1];
+
+        NN::forward(&mut nn);
+        println!(
+            "input:{:?} output:{:?}",
+            t_input.data[i],
+            nn.activations[nn.count - 1].data[0]
+        );
     }
 
     loop {

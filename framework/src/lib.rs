@@ -1,11 +1,13 @@
 use rand::Rng;
 
+#[macro_export]
 macro_rules! nn_input {
     ($nn:expr) => {
         $nn.activations[0]
-    };
+    }
 }
 
+#[macro_export]
 macro_rules! nn_output {
     ($nn:expr) => {
         $nn.activations[$nn.count - 1]
@@ -172,9 +174,9 @@ impl NN {
         }
     }
 
-    pub fn finite_diff(nn: &mut NN, g: &mut NN, eps: f32, ti: &Mat, to: &Mat) {
+    pub fn finite_diff(nn: &mut NN, g: &mut NN, eps: f32, t_input: &Mat, t_output: &Mat) {
         let mut saved: f32;
-        let c = Self::cost(nn.clone(), &ti.clone(), &to.clone());
+        let c = Self::cost(nn.clone(), &t_input.clone(), &t_output.clone());
 
         for i in 0..nn.count - 1 {
             for j in 0..nn.weights[i].rows {
@@ -182,7 +184,7 @@ impl NN {
                     saved = nn.weights[i].data[j][k];
                     nn.weights[i].data[j][k] += eps;
                     g.weights[i].data[j][k] =
-                        (Self::cost(nn.clone(), &ti.clone(), &to.clone()) - c) / eps;
+                        (Self::cost(nn.clone(), &t_input.clone(), &t_output.clone()) - c) / eps;
                     nn.weights[i].data[j][k] = saved;
                 }
             }
@@ -192,7 +194,7 @@ impl NN {
                     saved = nn.biases[i].data[j][k];
                     nn.biases[i].data[j][k] += eps;
                     g.biases[i].data[j][k] =
-                        (Self::cost(nn.clone(), &ti.clone(), &to.clone()) - c) / eps;
+                        (Self::cost(nn.clone(), &t_input.clone(), &t_output.clone()) - c) / eps;
                     nn.biases[i].data[j][k] = saved;
                 }
             }
