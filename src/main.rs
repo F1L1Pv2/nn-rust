@@ -13,18 +13,6 @@ const RENDER_Y: f32 = 0.0;
 const BACKGROUND_COLOR: Color = BLACK;
 const TEXT_COLOR: Color = WHITE;
 
-const T_INPUT: Mat = Mat {
-    rows: 4,
-    cols: 2,
-    data: [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]],
-};
-
-const T_OUTPUT: Mat = Mat {
-    rows: 4,
-    cols: 1,
-    data: [[0.0], [1.0], [1.0], [0.0]],
-};
-
 struct RENDERINFO {
     epoch: i32,
     cost: f32,
@@ -33,8 +21,23 @@ struct RENDERINFO {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut nn = NN::new(&[2, 2, 1]);
-
     let mut g = nn.clone();
+
+
+    let t_input: Mat = Mat {
+        rows: 4,
+        cols: 2,
+        data: vec![vec![0.0, 0.0], vec![0.0, 1.0], vec![1.0, 0.0], vec![1.0, 1.0]],
+    };
+    
+    let t_output: Mat = Mat {
+        rows: 4,
+        cols: 1,
+        data: vec![vec![0.0], vec![1.0], vec![1.0], vec![0.0]],
+    };
+
+
+
     let mut cost = 0.0;
 
     println!("{:?}", nn);
@@ -49,10 +52,10 @@ async fn main() {
     for i in 0..EPOCH_MAX {
         // NN::finite_diff(&mut nn, &mut g, 1e-1, &t_input, &t_output);
         info = RENDERINFO { epoch: i + 1, cost };
-        NN::backprop(&mut nn, &mut g, &T_INPUT, &T_OUTPUT);
+        NN::backprop(&mut nn, &mut g, &t_input, &t_output);
         NN::learn(&mut nn, &g, LEARNING_RATE);
         if i % 500 == 0 {
-            cost = NN::cost(nn.clone(), &T_INPUT, &T_OUTPUT);
+            cost = NN::cost(nn.clone(), &t_input, &t_output);
 
             clear_background(BACKGROUND_COLOR);
 
@@ -64,17 +67,17 @@ async fn main() {
     }
 
     // TESTING
-    // for i in 0..t_input.rows {
-    //     nn.activations[0].data[0][0] = t_input.data[i][0];
-    //     nn.activations[0].data[0][1] = t_input.data[i][1];
+    for i in 0..t_input.rows {
+        nn.activations[0].data[0][0] = t_input.data[i][0];
+        nn.activations[0].data[0][1] = t_input.data[i][1];
 
-    //     NN::forward(&mut nn);
-    //     println!(
-    //         "input:{:?} output:{:?}",
-    //         t_input.data[i],
-    //         nn.activations[nn.count - 1].data[0]
-    //     );
-    // }
+        NN::forward(&mut nn);
+        println!(
+            "input:{:?} output:{:?}",
+            t_input.data[i],
+            nn.activations[nn.count - 1].data[0]
+        );
+    }
 
     loop {
         clear_background(BACKGROUND_COLOR);
@@ -108,7 +111,6 @@ fn window_conf() -> Conf {
 }
 
 fn draw_nn(nn: &NN, width: f32, height: f32, info: &RENDERINFO) {
-    let mut nn = nn.clone();
     let low_color = Color {
         r: 1.,
         g: 0.,
@@ -185,23 +187,4 @@ fn draw_nn(nn: &NN, width: f32, height: f32, info: &RENDERINFO) {
     );
 
     // Write the testing results at the bottom right
-
-    for i in 0..T_INPUT.rows {
-        nn.activations[0].data[0][0] = T_INPUT.data[i][0];
-        nn.activations[0].data[0][1] = T_INPUT.data[i][1];
-
-        NN::forward(&mut nn);
-        draw_text(
-            format!(
-                "input:{:?} output:{:?}",
-                T_INPUT[i],
-                nn.activations[nn.count - 1].data[0]
-            )
-            .as_str(),
-            screen_width() - 300.,
-            screen_height() - 10. - 20. * i as f32,
-            20.,
-            TEXT_COLOR,
-        );
-    }
 }
