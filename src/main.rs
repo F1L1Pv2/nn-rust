@@ -1,80 +1,115 @@
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 use framework::*;
+use macroquad::prelude::*;
 
-fn main() {
-    App::new()
-        .add_plugins(DefaultPlugins)
-        .add_startup_system(setup_bevy)
-        // .add_system(update_frame)
-        .add_system(bevy::window::close_on_esc)
-        .run();
-}
+// #[derive(Clone, Debug)]
+// pub struct Mat {
+//     pub rows: usize,
+//     pub cols: usize,
+//     pub data: Vec<Vec<f32>>,
+// }
 
-fn setup_bevy(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
-    commands.spawn(Camera2dBundle::default());
+// #[derive(Clone, Debug)]
+// pub struct NN {
+//     pub count: usize,
+//     pub weights: Vec<Mat>,
+//     pub biases: Vec<Mat>,
+//     pub activations: Vec<Mat>,
+// }
+// Commented because it's already in lib.rs
 
-    // Get the struct
-    let mut nn = nn_alloc(&[1, 1]);
-    nn_randomize(&mut nn, -1.0, 1.0);
+const NODE_RADIUS: f32 = 20.0;
+const LAYER_GAP: f32 = 100.0;
+const NODE_GAP: f32 = 50.0;
 
-    // {
-    //   "count": 2, // number of layers including input and output
-    //   "weights": [
-    //     {
-    //       "rows": 1,
-    //       "cols": 1,
-    //       "data": [
-    //         [0.0]
-    //       ]
-    //     }
-    //   ],
-    //   "biases": [
-    //     {
-    //       "rows": 1,
-    //       "cols": 1,
-    //       "data": [
-    //         [0.0]
-    //       ]
-    //     }
-    //   ],
-    //   "activations": [
-    //     {
-    //       "rows": 1,
-    //       "cols": 1,
-    //       "data": [
-    //         [0.0]
-    //       ]
-    //     },
-    //     {
-    //       "rows": 1,
-    //       "cols": 1,
-    //       "data": [
-    //         [0.0]
-    //       ]
-    //     }
-    //   ]
-    // }
-
-    // Spawn input circles at the left, hidden layers in the middle, and output circles on the right
-    for i in 0..nn.count {
-        let x = 0.0;
-        let y = (i as f32 - nn.count as f32 / 2.0) * 100.0;
-        commands.spawn(MaterialMesh2dBundle {
-            mesh: meshes.add(shape::Circle::default().into()).into(),
-            material: materials.add(ColorMaterial::from(Color::WHITE)),
-            transform: Transform::from_translation(Vec3::new(x, y, 0.0))
-                .with_scale(Vec3::new(75.0, 75.0, 75.0)),
-            ..default()
-        });
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Neural Network Visualization".to_owned(),
+        window_width: 800,
+        window_height: 600,
+        ..Default::default()
     }
 }
 
-fn update_frame(mut commands: Commands) {
-    let mut nn = nn_alloc(&[1, 1]);
-    nn_randomize(&mut nn, -1.0, 1.0);
-    println!("{:?}", nn);
+fn draw_nn(nn: &NN) {
+    let mut x = 50.0;
+
+    for i in 0..nn.count {
+        let y_offset = (screen_height()
+            - (nn.activations[i].rows as f32 * (NODE_RADIUS * 2.0 + NODE_GAP) - NODE_GAP))
+            / 2.0;
+        for j in 0..nn.activations[i].rows {
+            let y = y_offset + j as f32 * (NODE_RADIUS * 2.0 + NODE_GAP);
+
+            if i > 0 {
+                let prev_y_offset = (screen_height()
+                    - (nn.activations[i - 1].rows as f32 * (NODE_RADIUS * 2.0 + NODE_GAP)
+                        - NODE_GAP))
+                    / 2.0;
+                for k in 0..nn.activations[i - 1].rows {
+                    let prev_y = prev_y_offset + k as f32 * (NODE_RADIUS * 2.0 + NODE_GAP);
+                    draw_line(x - LAYER_GAP - NODE_GAP, prev_y, x, y, 2.0, GRAY);
+                }
+            }
+
+            draw_circle(x, y, NODE_RADIUS, BLUE);
+        }
+
+        x += NODE_RADIUS * 2.0 + LAYER_GAP;
+    }
+}
+
+#[macroquad::main(window_conf)]
+async fn main() {
+    // Use the NN struct to visualize the neural network
+    let nn = NN {
+        count: 3,
+        weights: vec![
+            Mat {
+                rows: 2,
+                cols: 3,
+                data: vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]],
+            },
+            Mat {
+                rows: 3,
+                cols: 2,
+                data: vec![vec![0.7, 0.8], vec![0.9, 1.0], vec![1.1, 1.2]],
+            },
+        ],
+        biases: vec![
+            Mat {
+                rows: 3,
+                cols: 1,
+                data: vec![vec![0.1], vec![0.2], vec![0.3]],
+            },
+            Mat {
+                rows: 2,
+                cols: 1,
+                data: vec![vec![0.4], vec![0.5]],
+            },
+        ],
+        activations: vec![
+            Mat {
+                rows: 2,
+                cols: 1,
+                data: vec![vec![0.1], vec![0.2]],
+            },
+            Mat {
+                rows: 3,
+                cols: 1,
+                data: vec![vec![0.3], vec![0.4], vec![0.5]],
+            },
+            Mat {
+                rows: 2,
+                cols: 1,
+                data: vec![vec![0.6], vec![0.7]],
+            },
+        ],
+    };
+    loop {
+        clear_background(LIGHTGRAY);
+
+        draw_nn(&nn);
+
+        next_frame().await
+    }
 }
