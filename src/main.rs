@@ -61,31 +61,33 @@ fn draw_nn(nn: &NN) {
 #[macroquad::main(window_conf)]
 async fn main() {
     // Use the NN struct to visualize the neural network
-    let mut nn = NN {
-        count: 2,
-        weights: vec![Mat {
-            rows: 2,
-            cols: 1,
-            data: vec![vec![1.0], vec![1.0]],
-        }],
-        biases: vec![Mat {
-            rows: 1,
-            cols: 1,
-            data: vec![vec![0.0]],
-        }],
-        activations: vec![
-            Mat {
-                rows: 1,
-                cols: 2,
-                data: vec![vec![1.0, 1.0]],
-            },
-            Mat {
-                rows: 1,
-                cols: 1,
-                data: vec![vec![0.3]],
-            },
-        ],
-    };
+    // let mut nn = NN {
+    //     count: 2,
+    //     weights: vec![Mat {
+    //         rows: 2,
+    //         cols: 1,
+    //         data: vec![vec![1.0], vec![1.0]],
+    //     }],
+    //     biases: vec![Mat {
+    //         rows: 1,
+    //         cols: 1,
+    //         data: vec![vec![0.0]],
+    //     }],
+    //     activations: vec![
+    //         Mat {
+    //             rows: 1,
+    //             cols: 2,
+    //             data: vec![vec![1.0, 1.0]],
+    //         },
+    //         Mat {
+    //             rows: 1,
+    //             cols: 1,
+    //             data: vec![vec![0.3]],
+    //         },
+    //     ],
+    // };
+
+    let mut nn = NN::new(&[2, 1]);
 
     let t_input: Mat = Mat {
         rows: 4,
@@ -101,7 +103,7 @@ async fn main() {
     let t_output = Mat {
         rows: 4,
         cols: 1,
-        data: vec![vec![0.0], vec![0.0], vec![0.0], vec![1.0]],
+        data: vec![vec![0.0], vec![1.0], vec![1.0], vec![1.0]],
     };
 
     let mut g = nn.clone();
@@ -111,9 +113,10 @@ async fn main() {
     NN::randomize(&mut nn, -1.0, 1.0);
     // println!("{:?}", nn);
 
-    for i in 0..10000 {
-        NN::finite_diff(&mut nn, &mut g, 1e-1, &t_input, &t_output);
-        NN::learn(&mut nn, &g, 1.0);
+    for i in 0..100000 {
+        // NN::finite_diff(&mut nn, &mut g, 1e-1, &t_input, &t_output);
+        NN::backprop(&mut nn, &mut g, &t_input, &t_output);
+        NN::learn(&mut nn, &g, 1e-1);
         if i % 500 == 0 {
             println!(
                 "i:{} cost:{:?}",

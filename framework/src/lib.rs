@@ -174,6 +174,22 @@ impl NN {
         }
     }
 
+    pub fn zero(nn: &mut NN) {
+        for i in 0..nn.count - 1 {
+            for j in 0..nn.weights[i].rows {
+                for k in 0..nn.weights[i].cols {
+                    nn.weights[i].data[j][k] = 0.0;
+                }
+            }
+
+            for j in 0..nn.biases[i].rows {
+                for k in 0..nn.biases[i].cols {
+                    nn.biases[i].data[j][k] = 0.0;
+                }
+            }
+        }
+    }
+
     pub fn finite_diff(nn: &mut NN, g: &mut NN, eps: f32, t_input: &Mat, t_output: &Mat) {
         let mut saved: f32;
         let c = Self::cost(nn.clone(), &t_input.clone(), &t_output.clone());
@@ -199,6 +215,43 @@ impl NN {
                 }
             }
         }
+    }
+
+    pub fn backprop(nn: &mut NN, g: &mut NN, t_input: &Mat, t_output: &Mat){
+        assert_eq!(t_input.rows, t_output.rows);
+        let n = t_input.rows;
+        assert_eq!(nn.activations[nn.count - 1].cols, t_output.cols);
+
+        NN::zero(g);
+
+        for i in 0..n {
+            Mat::copy(&mut nn_input!(nn), &Mat::row(&t_input, i));
+            Self::forward(nn);
+
+            for j in 0..nn.count {
+                Mat::fill(&mut g.activations[j], 0.0);
+            }
+
+            for j in 0..t_output.cols {
+                g.activations[nn.count - 1].data[0][j] =
+                    (nn_output!(nn).data[0][j] - t_output.data[i][j]) * 2.0 / n as f32;
+            }
+
+            for l in (0..nn.count - 1).rev() {
+                for j in 0..nn.activations[l + 1].cols {
+                    let a = nn.activations[l + 1].data[0][j];
+                    let da = g.activations[l + 1].data[0][j];
+                    g.biases[l].data[0][j] += da * a * (1.0 - a);
+                    for k in 0..nn.activations[l].cols {
+                        let pa = nn.activations[l].data[0][k];
+                        let w = nn.weights[l].data[k][j];
+                        g.weights[l].data[k][j] += da * a * (1.0 - a) * pa;
+                        g.activations[l].data[0][k] += da * a * (1.0 - a) * w;
+                    }
+                }
+            }
+        }
+
     }
 
     pub fn alloc(arch: &[usize]) -> NN {
