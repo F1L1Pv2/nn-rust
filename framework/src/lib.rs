@@ -4,7 +4,7 @@ use rand::Rng;
 macro_rules! nn_input {
     ($nn:expr) => {
         $nn.activations[0]
-    }
+    };
 }
 
 #[macro_export]
@@ -174,6 +174,22 @@ impl NN {
         }
     }
 
+    pub fn zero(nn: &mut NN) {
+        for i in 0..nn.count - 1 {
+            for j in 0..nn.weights[i].rows {
+                for k in 0..nn.weights[i].cols {
+                    nn.weights[i].data[j][k] = 0.0;
+                }
+            }
+
+            for j in 0..nn.biases[i].rows {
+                for k in 0..nn.biases[i].cols {
+                    nn.biases[i].data[j][k] = 0.0;
+                }
+            }
+        }
+    }
+
     pub fn finite_diff(nn: &mut NN, g: &mut NN, eps: f32, t_input: &Mat, t_output: &Mat) {
         let mut saved: f32;
         let c = Self::cost(nn.clone(), &t_input.clone(), &t_output.clone());
@@ -199,6 +215,81 @@ impl NN {
                 }
             }
         }
+    }
+
+    /*
+
+    void nn_backprop_traditional(NN nn, NN g, Mat ti, Mat to)
+    {
+        NN_ASSERT(ti.rows == to.rows);
+        size_t n = ti.rows;
+        NN_ASSERT(NN_OUTPUT(nn).cols == to.cols);
+
+        nn_zero(g);
+
+        // i - current sample
+        // l - current layer
+        // j - current activation
+        // k - previous activation
+
+        for (size_t i = 0; i < n; ++i) {
+            mat_copy(NN_INPUT(nn), mat_row(ti, i));
+            nn_forward(nn);
+
+            for (size_t j = 0; j <= nn.count; ++j) {
+                mat_fill(g.as[j], 0);
+            }
+
+            for (size_t j = 0; j < to.cols; ++j) {
+                MAT_AT(NN_OUTPUT(g), 0, j) = (MAT_AT(NN_OUTPUT(nn), 0, j) - MAT_AT(to, i, j))*2/n;
+            }
+
+            for (size_t l = nn.count; l > 0; --l) {
+                for (size_t j = 0; j < nn.as[l].cols; ++j) {
+                    float a = MAT_AT(nn.as[l], 0, j);
+                    float da = MAT_AT(g.as[l], 0, j);
+                    MAT_AT(g.bs[l-1], 0, j) += da*a*(1 - a);
+                    for (size_t k = 0; k < nn.as[l-1].cols; ++k) {
+                        // j - weight matrix col
+                        // k - weight matrix row
+                        float pa = MAT_AT(nn.as[l-1], 0, k);
+                        float w = MAT_AT(nn.ws[l-1], k, j);
+                        MAT_AT(g.ws[l-1], k, j) += da*a*(1 - a)*pa;
+                        MAT_AT(g.as[l-1], 0, k) += da*a*(1 - a)*w;
+                    }
+                }
+            }
+        }
+    }
+
+    */
+
+    pub fn backprop(nn: &mut NN, g: &mut NN, t_input: &Mat, t_output: &Mat) {
+        assert_eq!(t_input.rows, t_output.rows);
+        let n = t_input.rows;
+        assert_eq!(nn_output!(nn).cols, t_output.cols);
+
+        Self::zero(g);
+
+        // i - current sample
+        // l - current layer
+        // j - current activation
+        // k - previous activation
+
+        for i in 0..n {
+            Mat::copy(&mut nn_input!(nn), &Mat::row(t_input, i));
+            Self::forward(nn);
+
+            for j in 0..=nn.count-1 {
+                Mat::fill(&mut g.activations[j], 0.0);
+            }
+
+            for j in 0..t_output.cols {
+                g.activations[nn.count].data[0][j] = nn.activations[nn.count].data[0][j] - t_output.data[i][j]*2.0/n as f32;
+            }
+        }
+
+
     }
 
     pub fn alloc(arch: &[usize]) -> NN {
