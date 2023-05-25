@@ -1,7 +1,7 @@
 use framework::*;
 use macroquad::prelude::*;
 
-const EPOCH_MAX: i32 = 10000;
+const EPOCH_MAX: i32 = 1000000;
 const LEARNING_RATE: f32 = 1e-1; //0.1
 
 const WINDOW_WIDTH: i32 = 800;
@@ -13,9 +13,12 @@ const RENDER_Y: f32 = 0.0;
 const BACKGROUND_COLOR: Color = BLACK;
 const TEXT_COLOR: Color = WHITE;
 
+#[derive(Clone, Debug)]
 struct RENDERINFO {
     epoch: i32,
     cost: f32,
+    t_input: Mat,
+    t_output: Mat,
 }
 
 #[macroquad::main(window_conf)]
@@ -23,20 +26,22 @@ async fn main() {
     let mut nn = NN::new(&[2, 2, 1]);
     let mut g = nn.clone();
 
-
     let t_input: Mat = Mat {
         rows: 4,
         cols: 2,
-        data: vec![vec![0.0, 0.0], vec![0.0, 1.0], vec![1.0, 0.0], vec![1.0, 1.0]],
+        data: vec![
+            vec![0.0, 0.0],
+            vec![0.0, 1.0],
+            vec![1.0, 0.0],
+            vec![1.0, 1.0],
+        ],
     };
-    
+
     let t_output: Mat = Mat {
         rows: 4,
         cols: 1,
         data: vec![vec![0.0], vec![1.0], vec![1.0], vec![0.0]],
     };
-
-
 
     let mut cost = 0.0;
 
@@ -46,23 +51,33 @@ async fn main() {
     NN::randomize(&mut nn, -1.0, 1.0);
     // println!("{:?}", nn);
 
-    let mut info = RENDERINFO { epoch: 0, cost };
+    let mut info = RENDERINFO {
+        epoch: 0,
+        cost,
+        t_input: t_input.clone(),
+        t_output: t_output.clone(),
+    };
 
     // TRAINING
     for i in 0..EPOCH_MAX {
         // NN::finite_diff(&mut nn, &mut g, 1e-1, &t_input, &t_output);
-        info = RENDERINFO { epoch: i + 1, cost };
+        info = RENDERINFO {
+            epoch: i + 1,
+            cost,
+            t_input: t_input.clone(),
+            t_output: t_output.clone(),
+        };
         NN::backprop(&mut nn, &mut g, &t_input, &t_output);
         NN::learn(&mut nn, &g, LEARNING_RATE);
+
         if i % 500 == 0 {
+            println!("i:{} cost:{:?}", i, cost);
             cost = NN::cost(nn.clone(), &t_input, &t_output);
 
             clear_background(BACKGROUND_COLOR);
 
             draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
             next_frame().await;
-
-            println!("i:{} cost:{:?}", i, cost);
         }
     }
 
@@ -111,6 +126,7 @@ fn window_conf() -> Conf {
 }
 
 fn draw_nn(nn: &NN, width: f32, height: f32, info: &RENDERINFO) {
+    let mut nn = nn.clone();
     let low_color = Color {
         r: 1.,
         g: 0.,
@@ -175,16 +191,44 @@ fn draw_nn(nn: &NN, width: f32, height: f32, info: &RENDERINFO) {
 
     // Write the parameters at the bottom left
     draw_text(
-        format!(
-            "Epoch: {}/{} Cost: {} Learning Rate: {}",
-            info.epoch, EPOCH_MAX, info.cost, LEARNING_RATE
-        )
-        .as_str(),
+        format!("Epoch: {}/{}", info.epoch, EPOCH_MAX,).as_str(),
         0.,
-        screen_height() - 10.,
+        15.,
+        20.,
+        TEXT_COLOR,
+    );
+    draw_text(
+        format!("Cost: {}", info.cost,).as_str(),
+        0.,
+        30.,
+        20.,
+        TEXT_COLOR,
+    );
+    draw_text(
+        format!("Learning Rate: {}", LEARNING_RATE).as_str(),
+        0.,
+        45.,
         20.,
         TEXT_COLOR,
     );
 
     // Write the testing results at the bottom right
+    for i in 0..info.t_input.rows {
+        nn.activations[0].data[0][0] = info.t_input.data[i][0];
+        nn.activations[0].data[0][1] = info.t_input.data[i][1];
+
+        NN::forward(&mut nn);
+        draw_text(
+            format!(
+                "input:{:?} output:{:?}",
+                info.t_input.data[i],
+                nn.activations[nn.count - 1].data[0]
+            )
+            .as_str(),
+            0.,
+            screen_height() - 10. - i as f32 * 20.,
+            20.,
+            TEXT_COLOR,
+        );
+    }
 }
