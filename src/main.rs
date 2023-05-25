@@ -49,7 +49,7 @@ fn draw_nn(nn: &NN) {
                     b: lerp(1.0, 0.0, (weight + 1.) / 2.),
                     a: 1.0,
                 };
-                draw_line(x1, y1, x2, y2, 2.0, color);
+                draw_line(x1, y1, x2, y2, weight.abs(), color);
             }
         }
     }
