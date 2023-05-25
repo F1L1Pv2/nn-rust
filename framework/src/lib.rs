@@ -8,7 +8,7 @@ macro_rules! nn_input {
 
 macro_rules! nn_output {
     ($nn:expr) => {
-        $nn.activations[$nn.count]
+        $nn.activations[$nn.count-1]
     };
 }
 
@@ -40,7 +40,7 @@ pub struct NN {
 // }
 
 pub fn sigmoidf(x: f32) -> f32 {
-    return 1.0 / (1.0 + -x.exp());
+    return 1.0 / (1.0 + (-x).exp());
 }
 
 pub fn mat_dot(dst: &mut Mat, a: &Mat, b: &Mat) {
@@ -92,13 +92,14 @@ pub fn mat_sig(dst: &mut Mat) {
 }
 
 pub fn nn_forward(nn: &mut NN) {
-    for i in 0..nn.count - 1 {
+    for i in 0..nn.count-1 {
         let mut new_nn = nn.clone();
         mat_dot(
             &mut new_nn.activations[i + 1],
             &nn.activations[i],
             &nn.weights[i],
         );
+        nn.activations[i + 1] = new_nn.activations[i + 1].clone();
         mat_sum(&mut nn.activations[i + 1], &nn.biases[i]);
         mat_sig(&mut nn.activations[i + 1]);
     }
@@ -122,9 +123,10 @@ pub fn mat_copy(dst: &mut Mat, src: &Mat) {
     }
 }
 
-pub fn nn_cost(mut nn: NN, t_input: Mat, t_output: Mat) -> f32 {
+pub fn nn_cost(mut nn: NN, t_input: &Mat, t_output: &Mat) -> f32 {
+    
     assert_eq!(t_input.rows, t_output.rows);
-    assert_eq!(t_input.cols, nn.activations[nn.count].cols);
+    assert_eq!(t_output.cols, nn.activations[nn.count-1].cols);
     let n = t_input.rows;
 
     let mut cost = 0.0;
@@ -147,7 +149,7 @@ pub fn nn_cost(mut nn: NN, t_input: Mat, t_output: Mat) -> f32 {
 }
 
 pub fn nn_learn(nn: &mut NN, g: &NN, rate: f32) {
-    for i in 0..nn.count {
+    for i in 0..nn.count-1 {
         for j in 0..nn.weights[i].rows {
             for k in 0..nn.weights[i].cols {
                 nn.weights[i].data[j][k] -= rate * g.weights[i].data[j][k];
@@ -186,25 +188,25 @@ NN { count: 2, weights: [Mat { rows: 1, cols: 1, data: [[-0.17453218]] }], biase
 
 */
 
-pub fn nn_finite_diff(nn: &mut NN, g: &mut NN, eps: f32, ti: Mat, to: Mat) {
+pub fn nn_finite_diff(nn: &mut NN, g: &mut NN, eps: f32, ti: &Mat, to: &Mat) {
     let mut saved: f32;
-    let c = nn_cost(nn.clone(), ti.clone(), to.clone());
+    let c = nn_cost(nn.clone(), &ti.clone(), &to.clone());
 
-    for i in 0..nn.count {
+    for i in 0..nn.count-1 {
         for j in 0..nn.weights[i].rows {
             for k in 0..nn.weights[i].cols {
                 saved = nn.weights[i].data[j][k];
                 nn.weights[i].data[j][k] += eps;
-                g.weights[i].data[j][k] = (nn_cost(nn.clone(), ti.clone(), to.clone()) - c) / eps;
+                g.weights[i].data[j][k] = (nn_cost(nn.clone(), &ti.clone(), &to.clone()) - c) / eps;
                 nn.weights[i].data[j][k] = saved;
             }
         }
 
-        for j in 0..nn.biases[i].rows {
-            for k in 0..nn.biases[i].cols {
+        for j in 0..nn.biases[i].rows-1 {
+            for k in 0..nn.biases[i].cols-1 {
                 saved = nn.biases[i].data[j][k];
                 nn.biases[i].data[j][k] += eps;
-                g.biases[i].data[j][k] = (nn_cost(nn.clone(), ti.clone(), to.clone()) - c) / eps;
+                g.biases[i].data[j][k] = (nn_cost(nn.clone(), &ti.clone(), &to.clone()) - c) / eps;
                 nn.biases[i].data[j][k] = saved;
             }
         }

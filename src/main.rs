@@ -61,50 +61,73 @@ fn draw_nn(nn: &NN) {
 #[macroquad::main(window_conf)]
 async fn main() {
     // Use the NN struct to visualize the neural network
-    let nn = NN {
-        count: 3,
+    let mut nn = NN {
+        count: 2,
         weights: vec![
             Mat {
                 rows: 2,
-                cols: 3,
-                data: vec![vec![0.1, 0.2, 0.3], vec![0.4, 0.5, 0.6]],
-            },
-            Mat {
-                rows: 3,
-                cols: 2,
-                data: vec![vec![0.7, 0.8], vec![0.9, 1.0], vec![1.1, 1.2]],
+                cols: 1,
+                data: vec![vec![1.0], vec![1.0]],
             },
         ],
         biases: vec![
             Mat {
-                rows: 3,
+                rows: 1,
                 cols: 1,
-                data: vec![vec![0.1], vec![0.2], vec![0.3]],
-            },
-            Mat {
-                rows: 2,
-                cols: 1,
-                data: vec![vec![0.4], vec![0.5]],
+                data: vec![vec![0.0]],
             },
         ],
         activations: vec![
             Mat {
-                rows: 2,
-                cols: 1,
-                data: vec![vec![0.1], vec![0.2]],
+                rows: 1,
+                cols: 2,
+                data: vec![vec![1.0, 1.0]],
             },
             Mat {
-                rows: 3,
+                rows: 1,
                 cols: 1,
-                data: vec![vec![0.3], vec![0.4], vec![0.5]],
-            },
-            Mat {
-                rows: 2,
-                cols: 1,
-                data: vec![vec![0.6], vec![0.7]],
+                data: vec![vec![0.3]],
             },
         ],
     };
+
+
+    let ti = Mat {
+        rows: 4,
+        cols: 2,
+        data: vec![
+            vec![0.0, 0.0],
+            vec![0.0, 1.0],
+            vec![1.0, 0.0],
+            vec![1.0, 1.0],
+        ],
+    };
+
+    let to = Mat {
+        rows: 4,
+        cols: 1,
+        data: vec![
+            vec![0.0],
+            vec![0.0], 
+            vec![0.0], 
+            vec![1.0]
+        ],
+    };
+
+    let mut g = nn.clone();
+
+    println!("{:?}", nn);
+    nn_forward(&mut nn);
+    //nn_randomize(&mut nn, -1.0, 1.0);
+    // println!("{:?}", nn);
+    println!("{:?}", nn_cost(nn.clone(), &ti, &to));
+    nn_finite_diff(&mut nn, &mut g, 1e-1, &ti, &to);
+    nn_learn(&mut nn, &g, 1.0);
+    println!("{:?}", nn_cost(nn.clone(), &ti, &to));
+    nn_finite_diff(&mut nn, &mut g, 1e-1, &ti, &to);
+    nn_learn(&mut nn, &g, 1.0);
+    println!("{:?}", nn_cost(nn.clone(), &ti, &to));
+
     loop {
         clear_background(LIGHTGRAY);
 
