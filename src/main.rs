@@ -17,6 +17,10 @@ use macroquad::prelude::*;
 // }
 // Commented because it's already in lib.rs
 
+fn lerp(a: f32, b: f32, t: f32) -> f32 {
+    return a + (b - a) * t;
+}
+
 const NODE_RADIUS: f32 = 20.0;
 const LAYER_GAP: f32 = 100.0;
 const NODE_GAP: f32 = 50.0;
@@ -31,30 +35,23 @@ fn window_conf() -> Conf {
 }
 
 fn draw_nn(nn: &NN) {
-    let mut x = 50.0;
-
-    for i in 0..nn.count {
-        let y_offset = (screen_height()
-            - (nn.activations[i].rows as f32 * (NODE_RADIUS * 2.0 + NODE_GAP) - NODE_GAP))
-            / 2.0;
-        for j in 0..nn.activations[i].rows {
-            let y = y_offset + j as f32 * (NODE_RADIUS * 2.0 + NODE_GAP);
-
-            if i > 0 {
-                let prev_y_offset = (screen_height()
-                    - (nn.activations[i - 1].rows as f32 * (NODE_RADIUS * 2.0 + NODE_GAP)
-                        - NODE_GAP))
-                    / 2.0;
-                for k in 0..nn.activations[i - 1].rows {
-                    let prev_y = prev_y_offset + k as f32 * (NODE_RADIUS * 2.0 + NODE_GAP);
-                    draw_line(x - LAYER_GAP - NODE_GAP, prev_y, x, y, 2.0, GRAY);
-                }
+    for i in 0..nn.count - 1 {
+        for j in 0..nn.activations[i].cols {
+            for k in 0..nn.activations[i + 1].cols {
+                let x1 = i as f32 * LAYER_GAP + NODE_RADIUS;
+                let y1 = j as f32 * NODE_GAP + NODE_RADIUS;
+                let x2 = (i + 1) as f32 * LAYER_GAP + NODE_RADIUS;
+                let y2 = k as f32 * NODE_GAP + NODE_RADIUS;
+                let weight = nn.weights[i].data[j][k];
+                let color = Color {
+                    r: lerp(1.0, 0.0, (weight + 1.) / 2.),
+                    g: lerp(0.0, 1.0, (weight + 1.) / 2.),
+                    b: lerp(1.0, 0.0, (weight + 1.) / 2.),
+                    a: 1.0,
+                };
+                draw_line(x1, y1, x2, y2, 2.0, color);
             }
-
-            draw_circle(x, y, NODE_RADIUS, BLUE);
         }
-
-        x += NODE_RADIUS * 2.0 + LAYER_GAP;
     }
 }
 
@@ -87,7 +84,7 @@ async fn main() {
     //     ],
     // };
 
-    let mut nn = NN::new(&[2, 1]);
+    let mut nn = NN::new(&[2, 2, 1]);
 
     let t_input: Mat = Mat {
         rows: 4,
@@ -103,7 +100,7 @@ async fn main() {
     let t_output = Mat {
         rows: 4,
         cols: 1,
-        data: vec![vec![0.0], vec![1.0], vec![1.0], vec![1.0]],
+        data: vec![vec![0.0], vec![1.0], vec![1.0], vec![0.0]],
     };
 
     let mut g = nn.clone();
@@ -113,23 +110,24 @@ async fn main() {
     NN::randomize(&mut nn, -1.0, 1.0);
     // println!("{:?}", nn);
 
-    for i in 0..100000 {
+    for i in 0..10000 {
         // NN::finite_diff(&mut nn, &mut g, 1e-1, &t_input, &t_output);
         NN::backprop(&mut nn, &mut g, &t_input, &t_output);
         NN::learn(&mut nn, &g, 1e-1);
         if i % 500 == 0 {
+            clear_background(LIGHTGRAY);
+            draw_nn(&nn);
+            next_frame().await;
+
             println!(
                 "i:{} cost:{:?}",
                 i,
                 NN::cost(nn.clone(), &t_input, &t_output)
             );
         }
-        
     }
 
     for i in 0..t_input.rows {
-
-        
         nn.activations[0].data[0][0] = t_input.data[i][0];
         nn.activations[0].data[0][1] = t_input.data[i][1];
 
