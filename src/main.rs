@@ -1,89 +1,25 @@
 use framework::*;
 use macroquad::prelude::*;
 
-// #[derive(Clone, Debug)]
-// pub struct Mat {
-//     pub rows: usize,
-//     pub cols: usize,
-//     pub data: Vec<Vec<f32>>,
-// }
+const EPOCH_MAX: i32 = 10000;
+const LEARNING_RATE: f32 = 1e-1; //0.1
 
-// #[derive(Clone, Debug)]
-// pub struct NN {
-//     pub count: usize,
-//     pub weights: Vec<Mat>,
-//     pub biases: Vec<Mat>,
-//     pub activations: Vec<Mat>,
-// }
-// Commented because it's already in lib.rs
+const WINDOW_WIDTH: i32 = 800;
+const WINDOW_HEIGHT: i32 = 600;
 
-fn lerp(a: f32, b: f32, t: f32) -> f32 {
-    return a + (b - a) * t;
-}
+const RENDER_X: f32 = 0.0;
+const RENDER_Y: f32 = 0.0;
 
-const NODE_RADIUS: f32 = 20.0;
-const LAYER_GAP: f32 = 100.0;
-const NODE_GAP: f32 = 50.0;
+const BACKGROUND_COLOR: Color = BLACK;
+const TEXT_COLOR: Color = WHITE;
 
-fn window_conf() -> Conf {
-    Conf {
-        window_title: "Neural Network Visualization".to_owned(),
-        window_width: 800,
-        window_height: 600,
-        ..Default::default()
-    }
-}
-
-fn draw_nn(nn: &NN) {
-    for i in 0..nn.count - 1 {
-        for j in 0..nn.activations[i].cols {
-            for k in 0..nn.activations[i + 1].cols {
-                let x1 = i as f32 * LAYER_GAP + NODE_RADIUS;
-                let y1 = j as f32 * NODE_GAP + NODE_RADIUS;
-                let x2 = (i + 1) as f32 * LAYER_GAP + NODE_RADIUS;
-                let y2 = k as f32 * NODE_GAP + NODE_RADIUS;
-                let weight = nn.weights[i].data[j][k];
-                let color = Color {
-                    r: lerp(1.0, 0.0, (weight + 1.) / 2.),
-                    g: lerp(0.0, 1.0, (weight + 1.) / 2.),
-                    b: lerp(1.0, 0.0, (weight + 1.) / 2.),
-                    a: 1.0,
-                };
-                draw_line(x1, y1, x2, y2, weight.abs(), color);
-            }
-        }
-    }
+struct RENDERINFO {
+    epoch: i32,
+    cost: f32,
 }
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    // Use the NN struct to visualize the neural network
-    // let mut nn = NN {
-    //     count: 2,
-    //     weights: vec![Mat {
-    //         rows: 2,
-    //         cols: 1,
-    //         data: vec![vec![1.0], vec![1.0]],
-    //     }],
-    //     biases: vec![Mat {
-    //         rows: 1,
-    //         cols: 1,
-    //         data: vec![vec![0.0]],
-    //     }],
-    //     activations: vec![
-    //         Mat {
-    //             rows: 1,
-    //             cols: 2,
-    //             data: vec![vec![1.0, 1.0]],
-    //         },
-    //         Mat {
-    //             rows: 1,
-    //             cols: 1,
-    //             data: vec![vec![0.3]],
-    //         },
-    //     ],
-    // };
-
     let mut nn = NN::new(&[2, 2, 1]);
 
     let t_input: Mat = Mat {
@@ -104,29 +40,35 @@ async fn main() {
     };
 
     let mut g = nn.clone();
+    let mut cost = 0.0;
 
     println!("{:?}", nn);
+
     // nn_forward(&mut nn);
     NN::randomize(&mut nn, -1.0, 1.0);
     // println!("{:?}", nn);
 
-    for i in 0..10000 {
+    let mut info = RENDERINFO { epoch: 0, cost };
+
+    // TRAINING
+    for i in 0..EPOCH_MAX {
         // NN::finite_diff(&mut nn, &mut g, 1e-1, &t_input, &t_output);
+        info = RENDERINFO { epoch: i + 1, cost };
         NN::backprop(&mut nn, &mut g, &t_input, &t_output);
-        NN::learn(&mut nn, &g, 1e-1);
+        NN::learn(&mut nn, &g, LEARNING_RATE);
         if i % 500 == 0 {
-            clear_background(LIGHTGRAY);
-            draw_nn(&nn);
+            cost = NN::cost(nn.clone(), &t_input, &t_output);
+
+            clear_background(BACKGROUND_COLOR);
+
+            draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
             next_frame().await;
 
-            println!(
-                "i:{} cost:{:?}",
-                i,
-                NN::cost(nn.clone(), &t_input, &t_output)
-            );
+            println!("i:{} cost:{:?}", i, cost);
         }
     }
 
+    // TESTING
     for i in 0..t_input.rows {
         nn.activations[0].data[0][0] = t_input.data[i][0];
         nn.activations[0].data[0][1] = t_input.data[i][1];
@@ -140,10 +82,109 @@ async fn main() {
     }
 
     loop {
-        clear_background(LIGHTGRAY);
+        clear_background(BACKGROUND_COLOR);
 
-        draw_nn(&nn);
+        draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
 
         next_frame().await
     }
+}
+
+fn lerp(a: f32, b: f32, t: f32) -> f32 {
+    return a + (b - a) * t;
+}
+
+fn color_lerp(a: Color, b: Color, t: f32) -> Color {
+    return Color {
+        r: lerp(a.r, b.r, t),
+        g: lerp(a.g, b.g, t),
+        b: lerp(a.b, b.b, t),
+        a: lerp(a.a, b.a, t),
+    };
+}
+
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Neural Network Visualization".to_owned(),
+        window_width: WINDOW_WIDTH,
+        window_height: WINDOW_HEIGHT,
+        ..Default::default()
+    }
+}
+
+fn draw_nn(nn: &NN, width: f32, height: f32, info: &RENDERINFO) {
+    let low_color = Color {
+        r: 1.,
+        g: 0.,
+        b: 1.,
+        a: 1.,
+    };
+    let high_color = Color {
+        r: 0.,
+        g: 1.,
+        b: 0.,
+        a: 1.,
+    };
+
+    let x = RENDER_X;
+    let y = RENDER_Y;
+
+    let neuron_radius = height * 0.03;
+    let layer_border_vpad = height * 0.08;
+    let layer_border_hpad = width * 0.06;
+    let nn_width = width - 2.0 * layer_border_hpad;
+    let nn_height = height - 2.0 * layer_border_vpad;
+    let nn_x = x + width / 2.0 - nn_width / 2.0;
+    let nn_y = y + height / 2.0 - nn_height / 2.0;
+    let arch_count = nn.count;
+    let layer_hpad = nn_width / arch_count as f32;
+
+    for l in 0..arch_count {
+        let layer_vpad1 = nn_height / nn.activations[l].cols as f32;
+        for i in 0..nn.activations[l].cols {
+            let cx1 = nn_x + l as f32 * layer_hpad + layer_hpad / 2.0;
+            let cy1 = nn_y + i as f32 * layer_vpad1 + layer_vpad1 / 2.0;
+            if l + 1 < arch_count {
+                let layer_vpad2 = nn_height / nn.activations[l + 1].cols as f32;
+                for j in 0..nn.activations[l + 1].cols {
+                    let cx2 = nn_x + (l + 1) as f32 * layer_hpad + layer_hpad / 2.0;
+                    let cy2 = nn_y + j as f32 * layer_vpad2 + layer_vpad2 / 2.0;
+                    let value = sigmoidf(nn.weights[l].data[i][j]);
+                    let thick = height * 0.004;
+                    draw_line(
+                        cx1,
+                        cy1,
+                        cx2,
+                        cy2,
+                        thick,
+                        color_lerp(low_color, high_color, value),
+                    );
+                }
+            }
+            if l > 0 {
+                let value = sigmoidf(nn.biases[l - 1].data[0][i]);
+                draw_circle(
+                    cx1,
+                    cy1,
+                    neuron_radius,
+                    color_lerp(low_color, high_color, value),
+                );
+            } else {
+                draw_circle(cx1, cy1, neuron_radius, GRAY);
+            }
+        }
+    }
+
+    // Write the parameters at the bottom left
+    draw_text(
+        format!(
+            "Epoch: {}/{} Cost: {} Learning Rate: {}",
+            info.epoch, EPOCH_MAX, info.cost, LEARNING_RATE
+        )
+        .as_str(),
+        0.,
+        screen_height() - 10.,
+        20.,
+        TEXT_COLOR,
+    );
 }
