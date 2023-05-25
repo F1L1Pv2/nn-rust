@@ -4,7 +4,7 @@ use rand::Rng;
 macro_rules! nn_input {
     ($nn:expr) => {
         $nn.activations[0]
-    }
+    };
 }
 
 #[macro_export]
@@ -217,7 +217,7 @@ impl NN {
         }
     }
 
-    pub fn backprop(nn: &mut NN, g: &mut NN, t_input: &Mat, t_output: &Mat){
+    pub fn backprop(nn: &mut NN, g: &mut NN, t_input: &Mat, t_output: &Mat) {
         assert_eq!(t_input.rows, t_output.rows);
         let n = t_input.rows;
         assert_eq!(nn.activations[nn.count - 1].cols, t_output.cols);
@@ -251,7 +251,6 @@ impl NN {
                 }
             }
         }
-
     }
 
     pub fn alloc(arch: &[usize]) -> NN {
