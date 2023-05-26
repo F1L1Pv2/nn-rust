@@ -19,87 +19,98 @@ struct RENDERINFO {
     cost: f32,
     t_input: Mat,
     t_output: Mat,
+    training_time: f32,
 }
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let mut nn = NN::new(&[2, 2, 1]);
-    let mut g = nn.clone();
+    'main: loop {
+        let mut nn = NN::new(&[2, 2, 1]);
+        let mut g = nn.clone();
 
-    let t_input: Mat = Mat {
-        rows: 4,
-        cols: 2,
-        data: vec![
-            vec![0.0, 0.0],
-            vec![0.0, 1.0],
-            vec![1.0, 0.0],
-            vec![1.0, 1.0],
-        ],
-    };
+        let t_input: Mat = Mat {
+            rows: 4,
+            cols: 2,
+            data: vec![
+                vec![0.0, 0.0],
+                vec![0.0, 1.0],
+                vec![1.0, 0.0],
+                vec![1.0, 1.0],
+            ],
+        };
 
-    let t_output: Mat = Mat {
-        rows: 4,
-        cols: 1,
-        data: vec![vec![0.0], vec![1.0], vec![1.0], vec![0.0]],
-    };
+        let t_output: Mat = Mat {
+            rows: 4,
+            cols: 1,
+            data: vec![vec![0.0], vec![1.0], vec![1.0], vec![0.0]],
+        };
 
-    let mut cost = 0.0;
+        let mut cost = 0.0;
 
-    println!("{:?}", nn);
+        NN::randomize(&mut nn, -1.0, 1.0);
 
-    // nn_forward(&mut nn);
-    NN::randomize(&mut nn, -1.0, 1.0);
-    // println!("{:?}", nn);
-
-    let mut info = RENDERINFO {
-        epoch: 0,
-        cost,
-        t_input: t_input.clone(),
-        t_output: t_output.clone(),
-    };
-
-    // TRAINING
-    for i in 0..EPOCH_MAX {
-        // NN::finite_diff(&mut nn, &mut g, 1e-1, &t_input, &t_output);
-        info = RENDERINFO {
-            epoch: i + 1,
+        let time_elapsed = chrono::Utc::now().timestamp_millis();
+        let mut info = RENDERINFO {
+            epoch: 0,
             cost,
             t_input: t_input.clone(),
             t_output: t_output.clone(),
+            training_time: 0.0,
         };
-        NN::backprop(&mut nn, &mut g, &t_input, &t_output);
-        NN::learn(&mut nn, &g, LEARNING_RATE);
 
-        if i % 500 == 0 {
-            println!("i:{} cost:{:?}", i, cost);
-            cost = NN::cost(nn.clone(), &t_input, &t_output);
-
-            clear_background(BACKGROUND_COLOR);
-
-            draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
-            next_frame().await;
-        }
-    }
-
-    // TESTING
-    for i in 0..t_input.rows {
-        nn.activations[0].data[0][0] = t_input.data[i][0];
-        nn.activations[0].data[0][1] = t_input.data[i][1];
-
-        NN::forward(&mut nn);
-        println!(
-            "input:{:?} output:{:?}",
-            t_input.data[i],
-            nn.activations[nn.count - 1].data[0]
-        );
-    }
-
-    loop {
         clear_background(BACKGROUND_COLOR);
 
         draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
+        next_frame().await;
 
-        next_frame().await
+        // TRAINING
+        for i in 0..EPOCH_MAX {
+            // NN::finite_diff(&mut nn, &mut g, 1e-1, &t_input, &t_output);
+            info = RENDERINFO {
+                epoch: i + 1,
+                cost,
+                t_input: t_input.clone(),
+                t_output: t_output.clone(),
+                training_time: (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32
+                    / 1000.0,
+            };
+            if is_key_down(KeyCode::R) {
+                continue 'main;
+            }
+            NN::backprop(&mut nn, &mut g, &t_input, &t_output);
+            NN::learn(&mut nn, &g, LEARNING_RATE);
+
+            if i % 500 == 0 {
+                // println!("i:{} cost:{:?}", i, cost);
+                cost = NN::cost(nn.clone(), &t_input, &t_output);
+
+                clear_background(BACKGROUND_COLOR);
+
+                draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
+                next_frame().await;
+            }
+        }
+
+        // TESTING
+        for i in 0..t_input.rows {
+            nn.activations[0].data[0][0] = t_input.data[i][0];
+            nn.activations[0].data[0][1] = t_input.data[i][1];
+
+            NN::forward(&mut nn);
+            println!(
+                "input:{:?} output:{:?}",
+                t_input.data[i],
+                nn.activations[nn.count - 1].data[0]
+            );
+        }
+
+        'end: loop {
+            clear_background(BACKGROUND_COLOR);
+
+            draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
+
+            next_frame().await
+        }
     }
 }
 
@@ -208,6 +219,13 @@ fn draw_nn(nn: &NN, width: f32, height: f32, info: &RENDERINFO) {
         format!("Learning Rate: {}", LEARNING_RATE).as_str(),
         0.,
         45.,
+        20.,
+        TEXT_COLOR,
+    );
+    draw_text(
+        format!("Training time: {:.1}s", info.training_time).as_str(),
+        0.,
+        60.,
         20.,
         TEXT_COLOR,
     );
