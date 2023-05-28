@@ -2,7 +2,7 @@ use framework::*;
 use macroquad::prelude::*;
 
 const EPOCH_MAX: i32 = 1000000;
-const LEARNING_RATE: f32 = 1e-1; //0.1
+const LEARNING_RATE: f32 = 0.1;
 
 const WINDOW_WIDTH: i32 = 800;
 const WINDOW_HEIGHT: i32 = 600;
@@ -14,11 +14,10 @@ const BACKGROUND_COLOR: Color = BLACK;
 const TEXT_COLOR: Color = WHITE;
 
 #[derive(Clone, Debug)]
-struct RENDERINFO {
+struct Renderinfo {
     epoch: i32,
     cost: f32,
     t_input: Mat,
-    t_output: Mat,
     training_time: f32,
 }
 
@@ -50,33 +49,33 @@ async fn main() {
         NN::randomize(&mut nn, -1.0, 1.0);
 
         let time_elapsed = chrono::Utc::now().timestamp_millis();
-        let mut info = RENDERINFO {
+        let mut info = Renderinfo {
             epoch: 0,
             cost,
             t_input: t_input.clone(),
-            t_output: t_output.clone(),
             training_time: 0.0,
         };
 
         clear_background(BACKGROUND_COLOR);
-
         draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
         next_frame().await;
 
         // TRAINING
         for i in 0..EPOCH_MAX {
             // NN::finite_diff(&mut nn, &mut g, 1e-1, &t_input, &t_output);
-            info = RENDERINFO {
+            info = Renderinfo {
                 epoch: i + 1,
                 cost,
                 t_input: t_input.clone(),
-                t_output: t_output.clone(),
                 training_time: (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32
                     / 1000.0,
             };
+
+            // Reset?
             if is_key_down(KeyCode::R) {
                 continue 'main;
             }
+
             NN::backprop(&mut nn, &mut g, &t_input, &t_output);
             NN::learn(&mut nn, &g, LEARNING_RATE);
 
@@ -104,7 +103,11 @@ async fn main() {
             );
         }
 
-        'end: loop {
+        loop {
+            // Reset?
+            if is_key_down(KeyCode::R) {
+                continue 'main;
+            }
             clear_background(BACKGROUND_COLOR);
 
             draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
@@ -115,16 +118,16 @@ async fn main() {
 }
 
 fn lerp(a: f32, b: f32, t: f32) -> f32 {
-    return a + (b - a) * t;
+    a + (b - a) * t
 }
 
 fn color_lerp(a: Color, b: Color, t: f32) -> Color {
-    return Color {
+    Color {
         r: lerp(a.r, b.r, t),
         g: lerp(a.g, b.g, t),
         b: lerp(a.b, b.b, t),
         a: lerp(a.a, b.a, t),
-    };
+    }
 }
 
 fn window_conf() -> Conf {
@@ -136,7 +139,7 @@ fn window_conf() -> Conf {
     }
 }
 
-fn draw_nn(nn: &NN, width: f32, height: f32, info: &RENDERINFO) {
+fn draw_nn(nn: &NN, width: f32, height: f32, info: &Renderinfo) {
     let mut nn = nn.clone();
     let low_color = Color {
         r: 1.,
