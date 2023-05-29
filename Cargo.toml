@@ -9,3 +9,4 @@ edition = "2021"
 chrono = "0.4.24"
 framework = {path = "framework"}
 macroquad = "0.3.25"
+image = "0.23.14"

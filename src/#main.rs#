@@ -1,9 +1,7 @@
 use framework::*;
 use macroquad::prelude::*;
-use image::{io::Reader as ImageReader, ImageBuffer};
-use std::env;
 
-const EPOCH_MAX: i32 = 10000;
+const EPOCH_MAX: i32 = 1000000;
 const LEARNING_RATE: f32 = 0.1;
 
 const WINDOW_WIDTH: i32 = 800;
@@ -23,69 +21,28 @@ struct Renderinfo {
     training_time: f32,
 }
 
-// #[macroquad::main(window_conf)]
-fn main() {
-
-    let args: Vec<String> = env::args().collect();
-
-    let mut nn = NN::new(&[3, 28,28, 1]);
-    let mut g = nn.clone();
-
-    let mut t_input: Mat = Mat {
-        rows: 4,
-        cols: 2,
-        data: vec![
-            vec![0.0, 0.0],
-            vec![0.0, 1.0],
-            vec![1.0, 0.0],
-            vec![1.0, 1.0],
-        ],
-    };
-
-    let mut t_output: Mat = Mat {
-        rows: 4,
-        cols: 1,
-        data: vec![vec![0.0], vec![1.0], vec![1.0], vec![0.0]],
-    };
-
-    if args.len() > 1{
-        let img = ImageReader::open(args[1].clone()).unwrap().decode().unwrap().to_bgra8();
-        
-        let pixelCount = img.width() * img.height();
-
-        t_input.rows = pixelCount as usize;
-        t_input.cols = 3;
-        t_output.rows = pixelCount as usize;
-        t_output.cols = 1;
-
-        t_input.data = vec![vec![0.0;3];pixelCount as usize];
-        t_output.data = vec![vec![0.0];pixelCount as usize];
-
-
-        for row in 0..img.height(){
-            for col in 0..img.width(){
-                let pixel = img.get_pixel(col,row);
-
-                t_input.data[(col+row*img.width()) as usize][0]=col as f32 / img.width() as f32;
-                t_input.data[(col+row*img.width()) as usize][1]=row as f32 / img.height() as f32;
-                t_input.data[(col+row*img.width()) as usize][2]=0.0;
-
-                t_output.data[(col+row*img.width()) as usize][0]=pixel[0] as f32 / 255.0;
-                
-            }
-        }
-        
-    
-    }else{
-        println!("No image path provided");
-        return;
-    }
-
-    // println!("{:?}",t_output);
-
-    // return;
-
+#[macroquad::main(window_conf)]
+async fn main() {
     'main: loop {
+        let mut nn = NN::new(&[2, 2, 1]);
+        let mut g = nn.clone();
+
+        let t_input: Mat = Mat {
+            rows: 4,
+            cols: 2,
+            data: vec![
+                vec![0.0, 0.0],
+                vec![0.0, 1.0],
+                vec![1.0, 0.0],
+                vec![1.0, 1.0],
+            ],
+        };
+
+        let t_output: Mat = Mat {
+            rows: 4,
+            cols: 1,
+            data: vec![vec![0.0], vec![1.0], vec![1.0], vec![0.0]],
+        };
 
         let mut cost = 0.0;
 
@@ -99,98 +56,63 @@ fn main() {
             training_time: 0.0,
         };
 
-        // clear_background(BACKGROUND_COLOR);
-        // draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
-        // next_frame().await;
+        clear_background(BACKGROUND_COLOR);
+        draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
+        next_frame().await;
 
         // TRAINING
         for i in 0..EPOCH_MAX {
             // NN::finite_diff(&mut nn, &mut g, 1e-1, &t_input, &t_output);
-            // info = Renderinfo {
-            //     epoch: i + 1,
-            //     cost,
-            //     t_input: t_input.clone(),
-            //     training_time: (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32
-            //         / 1000.0,
-            // };
+            info = Renderinfo {
+                epoch: i + 1,
+                cost,
+                t_input: t_input.clone(),
+                training_time: (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32
+                    / 1000.0,
+            };
 
             // Reset?
-            // if is_key_down(KeyCode::R) {
-            //     continue 'main;
-            // }
+            if is_key_down(KeyCode::R) {
+                continue 'main;
+            }
 
             NN::backprop(&mut nn, &mut g, &t_input, &t_output);
             NN::learn(&mut nn, &g, LEARNING_RATE);
 
-            if i % 1000 == 0 {
-                
+            if i % 500 == 0 {
+                // println!("i:{} cost:{:?}", i, cost);
                 cost = NN::cost(nn.clone(), &t_input, &t_output);
-                println!("i:{} cost:{:?}", i, cost);
 
-                // clear_background(BACKGROUND_COLOR);
+                clear_background(BACKGROUND_COLOR);
 
-                // draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
-                // next_frame().await;
+                draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
+                next_frame().await;
             }
         }
 
         // TESTING
-        // for i in 0..t_input.rows {
-            // nn.activations[0].data[0][0] = t_input.data[i][0];
-            // nn.activations[0].data[0][1] = t_input.data[i][1];
+        for i in 0..t_input.rows {
+            nn.activations[0].data[0][0] = t_input.data[i][0];
+            nn.activations[0].data[0][1] = t_input.data[i][1];
 
-            // NN::forward(&mut nn);
-            // println!(
-            //     "input:{:?} output:{:?}",
-            //     t_input.data[i],
-            //     nn.activations[nn.count - 1].data[0]
-            // );
-
-            //save image
-            
-            let out_size = 28;
-            let mut img = ImageBuffer::new(out_size, out_size);
-
-            for row in 0..out_size{
-                for col in 0..out_size{
-                    let mut input = t_input.data[0].clone();
-                    input[0] = col as f32 / out_size as f32;
-                    input[1] = row as f32 / out_size as f32;
-                    input[2] = 0.0;
-
-                    nn.activations[0].data[0][0] = input[0];
-                    nn.activations[0].data[0][1] = input[1];
-                    nn.activations[0].data[0][2] = input[2];
-
-                    NN::forward(&mut nn);
-
-                    let output = nn.activations[nn.count - 1].data[0][0];
-
-                    let pixel = image::Rgba([
-                        (output * 255.0) as u8,
-                        (output * 255.0) as u8,
-                        (output * 255.0) as u8,
-                        255,
-                    ]);
-
-                    img.put_pixel(col,row,pixel);
-                }
-            }
-            
-
-            img.save(format!("out/{}.png","out")).unwrap();
-        // }
+            NN::forward(&mut nn);
+            println!(
+                "input:{:?} output:{:?}",
+                t_input.data[i],
+                nn.activations[nn.count - 1].data[0]
+            );
+        }
 
         loop {
             // Reset?
-            // if is_key_down(KeyCode::R) {
-            //     continue 'main;
-            // }
-            // clear_background(BACKGROUND_COLOR);
+            if is_key_down(KeyCode::R) {
+                continue 'main;
+            }
+            clear_background(BACKGROUND_COLOR);
 
-            // draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
+            draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
 
-            // next_frame().await
+            next_frame().await
         }
     }
 }
