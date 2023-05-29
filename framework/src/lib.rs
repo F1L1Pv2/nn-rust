@@ -33,24 +33,48 @@ impl Mat {
         assert_eq!(a.rows, b.rows);
         assert_eq!(a.cols, b.cols);
 
-        for i in 0..a.rows {
-            for j in 0..a.cols {
-                a.data[i][j] += b.data[i][j];
+        // for i in 0..a.rows {
+        //     for j in 0..a.cols {
+        //         a.data[i][j] += b.data[i][j];
+        //     }
+        // }
+
+        //use iterators
+        for (i, row) in a.data.iter_mut().enumerate() {
+            for (j, val) in row.iter_mut().enumerate() {
+                *val += b.data[i][j];
             }
         }
+
+        //use rayon
+        // a.data.par_iter_mut().enumerate().for_each(|(i, row)| {
+        //     row.par_iter_mut().enumerate().for_each(|(j, val)| {
+        //         *val += b.data[i][j];
+        //     })
+        // });
     }
 
     pub fn dot(dst: &mut Mat, a: &Mat, b: &Mat) {
         assert_eq!(a.cols, b.rows);
-        let n = a.cols;
+        // let n = a.cols;
         assert_eq!(dst.rows, a.rows);
         assert_eq!(dst.cols, b.cols);
 
-        for i in 0..dst.rows {
-            for j in 0..dst.cols {
-                dst.data[i][j] = 0.0;
-                for k in 0..n {
-                    dst.data[i][j] += a.data[i][k] * b.data[k][j];
+        Mat::fill(dst, 0.0);
+
+        // for i in 0..dst.rows {
+        //     for k in 0..n {
+        //         for j in 0..dst.cols {
+        //             dst.data[i][j] += a.data[i][k] * b.data[k][j];
+        //         }
+        //     }
+        // }
+
+        //use iterators
+        for (i, row) in dst.data.iter_mut().enumerate() {
+            for (k, val) in a.data[i].iter().enumerate() {
+                for (j, val2) in row.iter_mut().enumerate() {
+                    *val2 += val * b.data[k][j];
                 }
             }
         }
@@ -65,11 +89,25 @@ impl Mat {
     }
 
     pub fn sig(dst: &mut Mat) {
-        for i in 0..dst.rows {
-            for j in 0..dst.cols {
-                dst.data[i][j] = sigmoidf(dst.data[i][j]);
+        // for i in 0..dst.rows {
+        //     for j in 0..dst.cols {
+        //         dst.data[i][j] = sigmoidf(dst.data[i][j]);
+        //     }
+        // }
+
+        //use iterators
+        for row in dst.data.iter_mut() {
+            for val in row.iter_mut() {
+                *val = sigmoidf(*val);
             }
         }
+
+        //use rayon
+        // dst.data.par_iter_mut().for_each(|row| {
+        //     row.par_iter_mut().for_each(|val| {
+        //         *val = sigmoidf(*val);
+        //     })
+        // });
     }
 
     pub fn row(mat: &Mat, row: usize) -> Mat {

@@ -1,7 +1,7 @@
 use framework::*;
 use macroquad::prelude::*;
 
-const EPOCH_MAX: i32 = 1000000;
+const EPOCH_MAX: i32 = 100000;
 const LEARNING_RATE: f32 = 0.1;
 
 const WINDOW_WIDTH: i32 = 800;
@@ -79,12 +79,11 @@ async fn main() {
             NN::backprop(&mut nn, &mut g, &t_input, &t_output);
             NN::learn(&mut nn, &g, LEARNING_RATE);
 
-            if i % 500 == 0 {
-                // println!("i:{} cost:{:?}", i, cost);
+            if i % 1000 == 0 {
                 cost = NN::cost(nn.clone(), &t_input, &t_output);
+                println!("i:{} cost:{:?}", i, cost);
 
                 clear_background(BACKGROUND_COLOR);
-
                 draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
                 next_frame().await;
             }
@@ -102,16 +101,16 @@ async fn main() {
                 nn.activations[nn.count - 1].data[0]
             );
         }
+        println!("training time:{}", info.training_time);
 
         loop {
             // Reset?
             if is_key_down(KeyCode::R) {
                 continue 'main;
             }
+
             clear_background(BACKGROUND_COLOR);
-
             draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
-
             next_frame().await
         }
     }
