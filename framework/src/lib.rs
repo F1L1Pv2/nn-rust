@@ -28,30 +28,35 @@ pub struct Mat {
 }
 
 impl Mat {
+    pub fn new(data: &[&[f32]]) -> Mat {
+        let rows = data.len();
+        let cols = data[0].len();
+
+        let mut mat = Mat {
+            rows,
+            cols,
+            data: vec![vec![0.0; cols]; rows],
+        };
+
+        for (i, row) in data.iter().enumerate() {
+            for (j, val) in row.iter().enumerate() {
+                mat.data[i][j] = *val;
+            }
+        }
+
+        mat
+    }
+
     // do a jest dodawane b
     pub fn sum(a: &mut Mat, b: &Mat) {
         assert_eq!(a.rows, b.rows);
         assert_eq!(a.cols, b.cols);
 
-        // for i in 0..a.rows {
-        //     for j in 0..a.cols {
-        //         a.data[i][j] += b.data[i][j];
-        //     }
-        // }
-
-        //use iterators
         for (i, row) in a.data.iter_mut().enumerate() {
             for (j, val) in row.iter_mut().enumerate() {
                 *val += b.data[i][j];
             }
         }
-
-        //use rayon
-        // a.data.par_iter_mut().enumerate().for_each(|(i, row)| {
-        //     row.par_iter_mut().enumerate().for_each(|(j, val)| {
-        //         *val += b.data[i][j];
-        //     })
-        // });
     }
 
     pub fn dot(dst: &mut Mat, a: &Mat, b: &Mat) {
@@ -62,15 +67,6 @@ impl Mat {
 
         Mat::fill(dst, 0.0);
 
-        // for i in 0..dst.rows {
-        //     for k in 0..n {
-        //         for j in 0..dst.cols {
-        //             dst.data[i][j] += a.data[i][k] * b.data[k][j];
-        //         }
-        //     }
-        // }
-
-        //use iterators
         for (i, row) in dst.data.iter_mut().enumerate() {
             for (k, val) in a.data[i].iter().enumerate() {
                 for (j, val2) in row.iter_mut().enumerate() {
@@ -89,25 +85,11 @@ impl Mat {
     }
 
     pub fn sig(dst: &mut Mat) {
-        // for i in 0..dst.rows {
-        //     for j in 0..dst.cols {
-        //         dst.data[i][j] = sigmoidf(dst.data[i][j]);
-        //     }
-        // }
-
-        //use iterators
         for row in dst.data.iter_mut() {
             for val in row.iter_mut() {
                 *val = sigmoidf(*val);
             }
         }
-
-        //use rayon
-        // dst.data.par_iter_mut().for_each(|row| {
-        //     row.par_iter_mut().for_each(|val| {
-        //         *val = sigmoidf(*val);
-        //     })
-        // });
     }
 
     pub fn row(mat: &Mat, row: usize) -> Mat {
@@ -156,7 +138,8 @@ impl NN {
         }
     }
 
-    pub fn cost(mut nn: NN, t_input: &Mat, t_output: &Mat) -> f32 {
+    pub fn cost(nn: &NN, t_input: &Mat, t_output: &Mat) -> f32 {
+        let mut nn = nn.clone();
         assert_eq!(t_input.rows, t_output.rows);
         assert_eq!(t_output.cols, nn.activations[nn.count - 1].cols);
         let n = t_input.rows;
@@ -230,7 +213,7 @@ impl NN {
 
     pub fn finite_diff(nn: &mut NN, g: &mut NN, eps: f32, t_input: &Mat, t_output: &Mat) {
         let mut saved: f32;
-        let c = Self::cost(nn.clone(), &t_input.clone(), &t_output.clone());
+        let c = Self::cost(&nn, &t_input.clone(), &t_output.clone());
 
         for i in 0..nn.count - 1 {
             for j in 0..nn.weights[i].rows {
@@ -238,7 +221,7 @@ impl NN {
                     saved = nn.weights[i].data[j][k];
                     nn.weights[i].data[j][k] += eps;
                     g.weights[i].data[j][k] =
-                        (Self::cost(nn.clone(), &t_input.clone(), &t_output.clone()) - c) / eps;
+                        (Self::cost(&nn, &t_input.clone(), &t_output.clone()) - c) / eps;
                     nn.weights[i].data[j][k] = saved;
                 }
             }
@@ -248,7 +231,7 @@ impl NN {
                     saved = nn.biases[i].data[j][k];
                     nn.biases[i].data[j][k] += eps;
                     g.biases[i].data[j][k] =
-                        (Self::cost(nn.clone(), &t_input.clone(), &t_output.clone()) - c) / eps;
+                        (Self::cost(&nn, &t_input.clone(), &t_output.clone()) - c) / eps;
                     nn.biases[i].data[j][k] = saved;
                 }
             }
@@ -343,22 +326,5 @@ pub fn rand_float(min: f32, max: f32) -> f32 {
     rand::thread_rng().gen_range(min..max)
 }
 
-/*
-
-NN { count: 2, weights: [Mat { rows: 1, cols: 1, data: [[0.0]] }], biases: [Mat { rows: 1, cols: 1, data: [[0.0]] }], activations: [Mat { rows: 1, cols: 1, data: [[0.0]] }, Mat { rows: 1, cols: 1, data: [[0.0]] }] }
-
-NN { count: 2, weights: [Mat { rows: 1, cols: 1, data: [[-0.17453218]] }], biases: [Mat { rows: 1, cols: 1, data: [[-0.21597385]] }], activations: [Mat { rows: 1, cols: 1, data: [[0.0]] }, Mat { rows: 1, cols: 1, data: [[0.0]] }] }
-
-*/
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn it_works() {
-//         let number = rand::random::<f32>();
-//         println!("Random number: {}", number);
-//         assert_eq!(number, 69.0);
-//     }
-// }
+#[cfg(test)]
+mod test;

@@ -24,25 +24,18 @@ struct Renderinfo {
 #[macroquad::main(window_conf)]
 async fn main() {
     'main: loop {
-        let mut nn = NN::new(&[2, 2, 1]);
+        let mut nn = NN::new(&[2, 10, 10, 1]);
         let mut g = nn.clone();
 
-        let t_input: Mat = Mat {
-            rows: 4,
-            cols: 2,
-            data: vec![
-                vec![0.0, 0.0],
-                vec![0.0, 1.0],
-                vec![1.0, 0.0],
-                vec![1.0, 1.0],
-            ],
-        };
+        let t_input = Mat::new(&[
+            // Even numbers are one
+            &[0.0, 0.0],
+            &[0.0, 1.0],
+            &[1.0, 0.0],
+            &[1.0, 1.0],
+        ]);
 
-        let t_output: Mat = Mat {
-            rows: 4,
-            cols: 1,
-            data: vec![vec![0.0], vec![1.0], vec![1.0], vec![0.0]],
-        };
+        let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
 
         let mut cost = 0.0;
 
@@ -62,7 +55,7 @@ async fn main() {
 
         // TRAINING
         for i in 0..EPOCH_MAX {
-            // NN::finite_diff(&mut nn, &mut g, 1e-1, &t_input, &t_output);
+            // NN::finite_diff(&mut nn, &mut g, 0.1, &t_input, &t_output);
             info = Renderinfo {
                 epoch: i + 1,
                 cost,
@@ -80,7 +73,7 @@ async fn main() {
             NN::learn(&mut nn, &g, LEARNING_RATE);
 
             if i % 1000 == 0 {
-                cost = NN::cost(nn.clone(), &t_input, &t_output);
+                cost = NN::cost(&nn, &t_input, &t_output);
                 println!("i:{} cost:{:?}", i, cost);
 
                 clear_background(BACKGROUND_COLOR);
