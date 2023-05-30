@@ -1,7 +1,7 @@
-use framework::*;
+use framework::{sigmoidf, Mat, NN};
 use macroquad::prelude::*;
 
-const EPOCH_MAX: i32 = 100000;
+const EPOCH_MAX: i32 = 100_000;
 const LEARNING_RATE: f32 = 0.1;
 
 const WINDOW_WIDTH: i32 = 800;
@@ -74,7 +74,7 @@ async fn main() {
 
             if i % 1000 == 0 {
                 cost = NN::cost(&nn, &t_input, &t_output);
-                println!("i:{} cost:{:?}", i, cost);
+                println!("i:{i} cost:{cost:?}");
 
                 clear_background(BACKGROUND_COLOR);
                 draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
@@ -104,7 +104,7 @@ async fn main() {
 
             clear_background(BACKGROUND_COLOR);
             draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
-            next_frame().await
+            next_frame().await;
         }
     }
 }
@@ -127,6 +127,7 @@ fn window_conf() -> Conf {
         window_title: "Neural Network Visualization".to_owned(),
         window_width: WINDOW_WIDTH,
         window_height: WINDOW_HEIGHT,
+        window_resizable: true,
         ..Default::default()
     }
 }
@@ -211,7 +212,7 @@ fn draw_nn(nn: &NN, width: f32, height: f32, info: &Renderinfo) {
         TEXT_COLOR,
     );
     draw_text(
-        format!("Learning Rate: {}", LEARNING_RATE).as_str(),
+        format!("Learning Rate: {LEARNING_RATE}").as_str(),
         0.,
         45.,
         20.,
