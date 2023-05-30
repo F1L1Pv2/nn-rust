@@ -1,6 +1,7 @@
 use super::{
     color_lerp, draw_circle, draw_line, draw_rectangle, draw_text, f32, screen_height, sigmoidf,
-    Color, Renderinfo, EPOCH_MAX, GRAY, LEARNING_RATE, NN, RENDER_X, RENDER_Y, TEXT_COLOR,
+    Color, Renderinfo, EPOCH_MAX, GRAY, LEARNING_RATE, LINE_COLOR, NN, RENDER_X, RENDER_Y,
+    TEXT_COLOR,
 };
 
 pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &Renderinfo) {
@@ -125,7 +126,7 @@ fn draw_graph(width: f32, height: f32, info: &Renderinfo) {
     for i in 0..info.cost_history.len() {
         let x = graph_x + i as f32 * graph_width / info.cost_history.len() as f32;
         let y = graph_y + graph_height - info.cost_history[i] / max_cost * graph_height;
-        draw_line(last_x, last_y, x, y, 1., TEXT_COLOR);
+        draw_line(last_x, last_y, x, y, 1., LINE_COLOR);
         last_x = x;
         last_y = y;
     }

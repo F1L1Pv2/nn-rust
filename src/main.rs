@@ -15,6 +15,7 @@ const RENDER_Y: f32 = 0.0;
 
 const BACKGROUND_COLOR: Color = BLACK;
 const TEXT_COLOR: Color = WHITE;
+const LINE_COLOR: Color = RED;
 
 #[derive(Clone, Debug)]
 pub struct Renderinfo {
