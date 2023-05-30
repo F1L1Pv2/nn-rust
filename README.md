@@ -1,4 +1,4 @@
-# nn-bevy
+# nn-rust
 
 Multithreaded neural network framework made 100% in Rust. Code based on [nn.h](https://github.com/tsoding/nn.h)
 
