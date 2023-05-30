@@ -75,6 +75,16 @@ async fn main() {
                 continue 'main;
             }
 
+            // Pause?
+            if is_key_down(KeyCode::Space) {
+                // While space is pressed, pause
+                while is_key_down(KeyCode::Space) {
+                    clear_background(BACKGROUND_COLOR);
+                    draw_frame(&nn, screen_width(), screen_height() / 1.2, &info);
+                    next_frame().await;
+                }
+            }
+
             NN::backprop(&mut nn, &mut g, &t_input, &t_output);
             NN::learn(&mut nn, &g, LEARNING_RATE);
 
