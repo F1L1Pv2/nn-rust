@@ -5,7 +5,7 @@ mod draw;
 use draw::draw_frame;
 
 const EPOCH_MAX: i32 = 100_000;
-const LEARNING_RATE: f32 = 0.1;
+const LEARNING_RATE: f32 = 1.0;
 
 const WINDOW_WIDTH: i32 = 800;
 const WINDOW_HEIGHT: i32 = 600;

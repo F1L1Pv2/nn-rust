@@ -143,14 +143,14 @@ fn draw_data(info: &Renderinfo, mut nn: NN) {
         TEXT_COLOR,
     );
     draw_text(
-        format!("Learning Rate: {LEARNING_RATE}").as_str(),
+        format!("Learning Rate: {LEARNING_RATE:.4}",).as_str(),
         0.,
         45.,
         20.,
         TEXT_COLOR,
     );
     draw_text(
-        format!("Training time: {:.1}s", info.training_time).as_str(),
+        format!("Training time: {:.4}s", info.training_time).as_str(),
         0.,
         60.,
         20.,
