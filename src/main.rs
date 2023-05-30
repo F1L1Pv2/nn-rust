@@ -19,6 +19,7 @@ struct Renderinfo {
     cost: f32,
     t_input: Mat,
     training_time: f32,
+    cost_history: Vec<f32>,
 }
 
 #[macroquad::main(window_conf)]
@@ -47,6 +48,7 @@ async fn main() {
             cost,
             t_input: t_input.clone(),
             training_time: 0.0,
+            cost_history: Vec::new(),
         };
 
         clear_background(BACKGROUND_COLOR);
@@ -62,6 +64,7 @@ async fn main() {
                 t_input: t_input.clone(),
                 training_time: (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32
                     / 1000.0,
+                cost_history: info.cost_history.clone(),
             };
 
             // Reset?
@@ -75,6 +78,7 @@ async fn main() {
             if i % 1000 == 0 {
                 cost = NN::cost(&nn, &t_input, &t_output);
                 println!("i:{i} cost:{cost:?}");
+                info.cost_history.push(cost);
 
                 clear_background(BACKGROUND_COLOR);
                 draw_nn(&nn, screen_width(), screen_height() / 1.2, &info);
@@ -226,7 +230,53 @@ fn draw_nn(nn: &NN, width: f32, height: f32, info: &Renderinfo) {
         TEXT_COLOR,
     );
 
-    // Write the testing results at the bottom right
+    // Draw a cost history graph in the bottom right
+    let graph_width = width * 0.3;
+    let graph_height = height * 0.3;
+    let graph_x = x + width - graph_width;
+    let graph_y = y + height - (graph_height * 0.4);
+    draw_rectangle(
+        graph_x,
+        graph_y,
+        graph_width,
+        graph_height,
+        Color {
+            r: 0.2,
+            g: 0.2,
+            b: 0.2,
+            a: 0.5,
+        },
+    );
+    draw_text(
+        "Cost History",
+        graph_x,
+        graph_y,
+        20.,
+        Color {
+            r: 1.,
+            g: 1.,
+            b: 1.,
+            a: 1.,
+        },
+    );
+
+    let mut max_cost = 0.;
+    for i in 0..info.cost_history.len() {
+        if info.cost_history[i] > max_cost {
+            max_cost = info.cost_history[i];
+        }
+    }
+    let mut last_x = graph_x;
+    let mut last_y = graph_y + graph_height;
+    for i in 0..info.cost_history.len() {
+        let x = graph_x + i as f32 * graph_width / info.cost_history.len() as f32;
+        let y = graph_y + graph_height - info.cost_history[i] / max_cost * graph_height;
+        draw_line(last_x, last_y, x, y, 1., TEXT_COLOR);
+        last_x = x;
+        last_y = y;
+    }
+
+    // Write the testing results at the bottom left
     for i in 0..info.t_input.rows {
         nn.activations[0].data[0][0] = info.t_input.data[i][0];
         nn.activations[0].data[0][1] = info.t_input.data[i][1];
