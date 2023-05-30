@@ -1,4 +1,7 @@
-use super::*;
+use super::{
+    color_lerp, draw_circle, draw_line, draw_rectangle, draw_text, f32, screen_height, sigmoidf,
+    Color, Renderinfo, EPOCH_MAX, GRAY, LEARNING_RATE, NN, RENDER_X, RENDER_Y, TEXT_COLOR,
+};
 
 pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &Renderinfo) {
     let nn = nn.clone();

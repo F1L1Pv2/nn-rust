@@ -2,7 +2,7 @@ use framework::{sigmoidf, Mat, NN};
 use macroquad::prelude::*;
 
 mod draw;
-use draw::*;
+use draw::draw_frame;
 
 const EPOCH_MAX: i32 = 100_000;
 const LEARNING_RATE: f32 = 0.1;
