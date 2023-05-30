@@ -116,7 +116,12 @@ fn draw_graph(width: f32, height: f32, info: &Renderinfo) {
         }
     }
     let mut last_x = graph_x;
-    let mut last_y = graph_y + graph_height;
+    let mut last_y;
+    if info.cost_history.is_empty() {
+        last_y = graph_y + graph_height;
+    } else {
+        last_y = graph_y + graph_height - info.cost_history[0] / max_cost * graph_height;
+    }
     for i in 0..info.cost_history.len() {
         let x = graph_x + i as f32 * graph_width / info.cost_history.len() as f32;
         let y = graph_y + graph_height - info.cost_history[i] / max_cost * graph_height;

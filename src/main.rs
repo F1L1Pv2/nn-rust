@@ -31,19 +31,13 @@ async fn main() {
         let mut nn = NN::new(&[2, 10, 10, 1]);
         let mut g = nn.clone();
 
-        let t_input = Mat::new(&[
-            // Even numbers are one
-            &[0.0, 0.0],
-            &[0.0, 1.0],
-            &[1.0, 0.0],
-            &[1.0, 1.0],
-        ]);
-
+        // XOR Example
+        let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
         let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
 
-        let mut cost = 0.0;
-
         NN::randomize(&mut nn, -1.0, 1.0);
+        let mut cost = NN::cost(&nn, &t_input, &t_output);
+        println!("Initial cost: {}", cost);
 
         let time_elapsed = chrono::Utc::now().timestamp_millis();
         let mut info = Renderinfo {
@@ -59,10 +53,9 @@ async fn main() {
         next_frame().await;
 
         // TRAINING
-        for i in 0..EPOCH_MAX {
-            // NN::finite_diff(&mut nn, &mut g, 0.1, &t_input, &t_output);
+        for i in 0..=EPOCH_MAX {
             info = Renderinfo {
-                epoch: i + 1,
+                epoch: i,
                 cost,
                 t_input: t_input.clone(),
                 training_time: (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32
