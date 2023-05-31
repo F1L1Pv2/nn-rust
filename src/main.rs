@@ -11,7 +11,7 @@ use macroquad::prelude::*;
 mod draw;
 use draw::draw_frame;
 
-const EPOCH_MAX: i32 = 100_000_000;
+const EPOCH_MAX: i32 = 100_000;
 const LEARNING_RATE: f32 = 1.;
 
 const WINDOW_WIDTH: i32 = 800;
@@ -46,66 +46,71 @@ impl Renderinfo {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    // XOR Example
-    let nn_structure = &[2, 4, 1];
-    let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
-    let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
+    'main: loop {
+        let nn = Arc::new(Mutex::new(NN::new(&[2, 4, 1])));
+        let mut g = NN::new(&[2, 4, 1]);
 
-    // Shared NN and Renderinfo objects protected by Mutex
-    let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
-    let info = Arc::new(Mutex::new(Renderinfo::new(&t_input, &t_output)));
+        // XOR Example
+        let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
+        let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
 
-    // Spawn a separate thread for training
-    let training_thread = {
-        let nn = Arc::clone(&nn);
-        let info = Arc::clone(&info);
-
-        let t_input = t_input.clone();
-        let t_output = t_output.clone();
-
-        thread::spawn(move || {
+        {
             let mut nn = nn.lock().unwrap();
-
             NN::randomize(&mut nn, -1.0, 1.0);
-            let mut cost = NN::cost(&nn, &t_input, &t_output);
-            println!("Initial cost: {:?}", cost);
+            let cost = NN::cost(&nn, &t_input, &t_output);
+            println!("Initial cost: {cost}");
+        }
 
-            drop(nn);
+        let mut paused = false;
 
-            let time_elapsed = chrono::Utc::now().timestamp_millis();
+        let time_elapsed = chrono::Utc::now().timestamp_millis();
+        let info = Arc::new(Mutex::new(Renderinfo {
+            epoch: 0,
+            cost: 0.0,
+            t_input: t_input.clone(),
+            t_output: t_output.clone(),
+            training_time: 0.0,
+            cost_history: Vec::new(),
+        }));
 
-            // Training loop
+        clear_background(BACKGROUND_COLOR);
+        {
+            let info = info.lock().unwrap();
+            draw_frame(
+                &nn.lock().unwrap(),
+                screen_width(),
+                screen_height() / 1.2,
+                &info,
+            );
+        }
+        next_frame().await;
+
+        // TRAINING
+        let nn_clone = Arc::clone(&nn);
+        let info_clone = Arc::clone(&info);
+        let training_thread = thread::spawn(move || {
             for i in 0..=EPOCH_MAX {
-                // Lock the nn and info objects separately to avoid deadlock
-                let mut nn = nn.lock().unwrap();
-                let mut info = info.lock().unwrap();
-
+                let mut info = info_clone.lock().unwrap();
                 info.epoch = i;
-                info.cost = cost;
                 info.t_input = t_input.clone();
                 info.t_output = t_output.clone();
                 info.training_time =
                     (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32 / 1000.0;
-                info.cost_history = info.cost_history.clone();
 
-                let mut cloned_nn = nn.clone();
-                NN::backprop(&mut nn, &mut cloned_nn, &t_input, &t_output);
-                NN::learn(&mut nn, &cloned_nn, LEARNING_RATE);
+                let mut nn = nn_clone.lock().unwrap();
+                NN::backprop(&mut nn, &mut g, &t_input, &t_output);
+                NN::learn(&mut nn, &g, LEARNING_RATE);
 
                 if i % 1000 == 0 {
-                    cost = NN::cost(&nn, &t_input, &t_output);
-                    println!("i:{:?} cost:{:?}", i, cost);
+                    let cost = NN::cost(&nn, &t_input, &t_output);
+                    println!("i:{i} cost:{cost:?}");
                     info.cost_history.push(cost);
                 }
-
-                // Unlock the mutexes explicitly to allow other threads to access them
-                drop(info);
-                drop(nn);
             }
 
             // TESTING
             for i in 0..t_input.rows {
-                let mut nn = nn.lock().unwrap();
+                let mut nn = nn_clone.lock().unwrap();
                 nn.activations[0].data[0][0] = t_input.data[i][0];
                 nn.activations[0].data[0][1] = t_input.data[i][1];
 
@@ -115,35 +120,64 @@ async fn main() {
                     t_input.data[i],
                     nn.activations[nn.count - 1].data[0]
                 );
+            }
+            println!("training time:{}", info_clone.lock().unwrap().training_time);
+        });
 
-                // Unlock the mutex explicitly to allow other threads to access it
-                drop(nn);
+        loop {
+            // Quit?
+            if is_key_pressed(KeyCode::Escape) || is_key_pressed(KeyCode::Q) {
+                std::process::exit(0);
             }
 
-            let info = info.lock().unwrap();
-            println!("training time:{}", info.training_time);
-        })
-    };
+            // Reset?
+            if is_key_pressed(KeyCode::R) {
+                continue 'main;
+            }
 
-    'main: loop {
-        // Get the nn and renderinfo objects
-        let nn = nn.lock().unwrap();
-        let info = info.lock().unwrap();
+            // Pause?
+            if is_key_pressed(KeyCode::P) {
+                paused = !paused;
+                if paused {
+                    loop {
+                        clear_background(BACKGROUND_COLOR);
+                        {
+                            let info = info.lock().unwrap();
+                            let nn = nn.lock().unwrap();
+                            draw_frame(&nn, screen_width(), screen_height() / 1.2, &info);
+                        }
+                        next_frame().await;
 
-        println!("epoch:{}", info.epoch);
+                        if is_key_pressed(KeyCode::P) {
+                            paused = false;
+                            break;
+                        }
+                    }
+                }
+            }
 
-        clear_background(BACKGROUND_COLOR);
-        draw_frame(&nn, screen_width(), screen_height() / 1.2, &info);
+            // Save?
+            if is_key_pressed(KeyCode::S) {
+                let nn = nn.lock().unwrap();
+                let json = NN::to_json(&nn);
+                let mut file = File::create("nn.json").unwrap();
+                file.write_all(json.as_bytes()).unwrap();
+                println!("Saved to nn.json");
+            }
 
-        // Unlock the mutexes explicitly to allow other threads to access them
-        drop(info);
-        drop(nn);
-
-        next_frame().await;
+            clear_background(BACKGROUND_COLOR);
+            {
+                let info = info.lock().unwrap();
+                draw_frame(
+                    &nn.lock().unwrap(),
+                    screen_width(),
+                    screen_height() / 1.2,
+                    &info,
+                );
+            }
+            next_frame().await;
+        }
     }
-
-    // Join the training thread to ensure it finishes
-    training_thread.join().unwrap();
 }
 
 fn lerp(a: f32, b: f32, t: f32) -> f32 {
