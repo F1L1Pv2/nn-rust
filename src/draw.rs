@@ -10,11 +10,11 @@ pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &Renderinfo) {
     draw_graph(width, height, info);
     draw_data(info, nn);
     // Right top corner
-    draw_text("s - save", width - 100., 0., 20., TEXT_COLOR);
-    draw_text("l - load", width - 100., 20., 20., TEXT_COLOR);
-    draw_text("r - reset", width - 100., 40., 20., TEXT_COLOR);
-    draw_text("p - pause", width - 100., 60., 20., TEXT_COLOR);
-    draw_text("q - quit", width - 100., 80., 20., TEXT_COLOR);
+    draw_text("s - save", width - 100., 20., 20., TEXT_COLOR);
+    draw_text("l - load", width - 100., 40., 20., TEXT_COLOR);
+    draw_text("r - reset", width - 100., 60., 20., TEXT_COLOR);
+    draw_text("p - pause", width - 100., 80., 20., TEXT_COLOR);
+    draw_text("q - quit", width - 100., 100., 20., TEXT_COLOR);
 }
 
 fn draw_nn(nn: &NN, width: f32, height: f32) {

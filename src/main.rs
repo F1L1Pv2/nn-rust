@@ -1,3 +1,5 @@
+use std::{fs::File, io::Write};
+
 use framework::{sigmoidf, Mat, NN};
 use macroquad::prelude::*;
 
@@ -44,6 +46,8 @@ async fn main() {
         let mut cost = NN::cost(&nn, &t_input, &t_output);
         println!("Initial cost: {}", cost);
 
+        let mut paused = false;
+
         let time_elapsed = chrono::Utc::now().timestamp_millis();
         let mut info = Renderinfo {
             epoch: 0,
@@ -70,18 +74,6 @@ async fn main() {
                 cost_history: info.cost_history.clone(),
             };
 
-            // Reset?
-            if is_key_down(KeyCode::R) {
-                continue 'main;
-            }
-
-            // Pause?
-            if is_key_down(KeyCode::P) {
-                while is_key_down(KeyCode::P) {
-                    next_frame().await;
-                }
-            }
-
             NN::backprop(&mut nn, &mut g, &t_input, &t_output);
             NN::learn(&mut nn, &g, LEARNING_RATE);
 
@@ -89,6 +81,40 @@ async fn main() {
                 cost = NN::cost(&nn, &t_input, &t_output);
                 println!("i:{i} cost:{cost:?}");
                 info.cost_history.push(cost);
+
+                if is_key_pressed(KeyCode::Escape) || is_key_pressed(KeyCode::Q) {
+                    std::process::exit(0);
+                }
+
+                // Reset?
+                if is_key_pressed(KeyCode::R) {
+                    continue 'main;
+                }
+
+                // Pause?
+                if is_key_pressed(KeyCode::P) {
+                    paused = !paused;
+                    if paused {
+                        loop {
+                            clear_background(BACKGROUND_COLOR);
+                            draw_frame(&nn, screen_width(), screen_height() / 1.2, &info);
+                            next_frame().await;
+
+                            if is_key_pressed(KeyCode::P) {
+                                paused = false;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Save?
+                if is_key_pressed(KeyCode::S) {
+                    let json = NN::to_json(&nn);
+                    let mut file = File::create("nn.json").unwrap();
+                    file.write_all(json.as_bytes()).unwrap();
+                    println!("Saved to nn.json");
+                }
 
                 clear_background(BACKGROUND_COLOR);
                 draw_frame(&nn, screen_width(), screen_height() / 1.2, &info);
