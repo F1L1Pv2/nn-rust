@@ -1,11 +1,9 @@
 [package]
-name = "nn-rust"
+name = "crong"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = "0.4.24"
-framework = {path = "framework"}
-macroquad = "0.3.25"
+macroquad = "0.3"

@@ -4,24 +4,28 @@ use macroquad::prelude::*;
 mod draw;
 use draw::draw_frame;
 
-const EPOCH_MAX: i32 = 100_000;
-const LEARNING_RATE: f32 = 1.0;
+const EPOCH_MAX: i32 = 100_000_000;
+const LEARNING_RATE: f32 = 1.;
 
 const WINDOW_WIDTH: i32 = 800;
 const WINDOW_HEIGHT: i32 = 600;
 
-const RENDER_X: f32 = 0.0;
-const RENDER_Y: f32 = 0.0;
-
 const BACKGROUND_COLOR: Color = BLACK;
 const TEXT_COLOR: Color = WHITE;
 const LINE_COLOR: Color = RED;
+
+// X Y WIDTH HEIGHT
+pub const RESET_BUTTON_COORDS: (f32, f32, f32, f32) = (0., 00., 100., 40.);
+pub const PAUSE_BUTTON_COORDS: (f32, f32, f32, f32) = (100., 00., 100., 40.);
+pub const SAVE_BUTTON_COORDS: (f32, f32, f32, f32) = (0., 40., 100., 40.);
+pub const LOAD_BUTTON_COORDS: (f32, f32, f32, f32) = (100., 40., 100., 40.);
 
 #[derive(Clone, Debug)]
 pub struct Renderinfo {
     epoch: i32,
     cost: f32,
     t_input: Mat,
+    t_output: Mat,
     training_time: f32,
     cost_history: Vec<f32>,
 }
@@ -29,7 +33,7 @@ pub struct Renderinfo {
 #[macroquad::main(window_conf)]
 async fn main() {
     'main: loop {
-        let mut nn = NN::new(&[2, 10, 10, 1]);
+        let mut nn = NN::new(&[2, 4, 1]);
         let mut g = nn.clone();
 
         // XOR Example
@@ -45,6 +49,7 @@ async fn main() {
             epoch: 0,
             cost,
             t_input: t_input.clone(),
+            t_output: t_output.clone(),
             training_time: 0.0,
             cost_history: Vec::new(),
         };
@@ -59,6 +64,7 @@ async fn main() {
                 epoch: i,
                 cost,
                 t_input: t_input.clone(),
+                t_output: t_output.clone(),
                 training_time: (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32
                     / 1000.0,
                 cost_history: info.cost_history.clone(),
@@ -69,16 +75,6 @@ async fn main() {
                 continue 'main;
             }
 
-            // Pause?
-            if is_key_down(KeyCode::Space) {
-                // While space is pressed, pause
-                while is_key_down(KeyCode::Space) {
-                    clear_background(BACKGROUND_COLOR);
-                    draw_frame(&nn, screen_width(), screen_height() / 1.2, &info);
-                    next_frame().await;
-                }
-            }
-
             NN::backprop(&mut nn, &mut g, &t_input, &t_output);
             NN::learn(&mut nn, &g, LEARNING_RATE);
 
@@ -86,6 +82,43 @@ async fn main() {
                 cost = NN::cost(&nn, &t_input, &t_output);
                 println!("i:{i} cost:{cost:?}");
                 info.cost_history.push(cost);
+
+                // Button input
+                if is_mouse_button_down(MouseButton::Left) {
+                    // Reset button
+                    // println!("mouse: {:?}", mouse_position());
+                    if is_mouse_inside(
+                        // We need to do some more math because the buttons are top right, not top left
+                        (
+                            RESET_BUTTON_COORDS.0 + screen_width() - RESET_BUTTON_COORDS.2 * 2.,
+                            RESET_BUTTON_COORDS.0 + RESET_BUTTON_COORDS.2 + screen_width()
+                                - RESET_BUTTON_COORDS.2 * 2.,
+                        ),
+                        (
+                            RESET_BUTTON_COORDS.1,
+                            RESET_BUTTON_COORDS.1 + RESET_BUTTON_COORDS.3,
+                        ),
+                    ) {
+                        continue 'main;
+                    }
+
+                    // Save button (saves json of network to a file)
+                    if is_mouse_inside(
+                        (
+                            SAVE_BUTTON_COORDS.0 + screen_width() - SAVE_BUTTON_COORDS.2 * 2.,
+                            SAVE_BUTTON_COORDS.0 + SAVE_BUTTON_COORDS.2 + screen_width()
+                                - SAVE_BUTTON_COORDS.2 * 2.,
+                        ),
+                        (
+                            SAVE_BUTTON_COORDS.1,
+                            SAVE_BUTTON_COORDS.1 + SAVE_BUTTON_COORDS.3,
+                        ),
+                    ) {
+                        let json = NN::to_json(&nn);
+                        std::fs::write("nn.json", json).unwrap();
+                        println!("Saved network to nn.json");
+                    }
+                }
 
                 clear_background(BACKGROUND_COLOR);
                 draw_frame(&nn, screen_width(), screen_height() / 1.2, &info);
@@ -141,4 +174,9 @@ fn window_conf() -> Conf {
         window_resizable: true,
         ..Default::default()
     }
+}
+
+fn is_mouse_inside(x: (f32, f32), y: (f32, f32)) -> bool {
+    let mouse_pos = mouse_position();
+    mouse_pos.0 >= x.0 && mouse_pos.0 <= x.1 && mouse_pos.1 >= y.0 && mouse_pos.1 <= y.1
 }

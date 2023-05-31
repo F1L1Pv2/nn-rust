@@ -109,6 +109,27 @@ impl Mat {
             }
         }
     }
+
+    pub fn to_json(&self) -> String {
+        // Not using serde_json because vec! is not supported
+        let mut s = String::new();
+        s.push_str("[");
+        for i in 0..self.rows {
+            s.push_str("[");
+            for j in 0..self.cols {
+                s.push_str(&self.data[i][j].to_string());
+                if j != self.cols - 1 {
+                    s.push_str(",");
+                }
+            }
+            s.push_str("]");
+            if i != self.rows - 1 {
+                s.push_str(",");
+            }
+        }
+        s.push_str("]");
+        s
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -315,6 +336,34 @@ impl NN {
             biases,
             activations,
         }
+    }
+
+    pub fn to_json(nn: &NN) -> String {
+        let mut s = String::new();
+
+        s.push_str(&format!("{{\"count\":{},", nn.count));
+
+        s.push_str("\"weights\":[");
+
+        for i in 0..nn.count - 1 {
+            s.push_str(&format!("{}", Mat::to_json(&nn.weights[i])));
+            if i < nn.count - 2 {
+                s.push_str(",");
+            }
+        }
+
+        s.push_str("],\"biases\":[");
+
+        for i in 0..nn.count - 1 {
+            s.push_str(&format!("{}", Mat::to_json(&nn.biases[i])));
+            if i < nn.count - 2 {
+                s.push_str(",");
+            }
+        }
+
+        s.push_str("]}");
+
+        return s;
     }
 }
 
