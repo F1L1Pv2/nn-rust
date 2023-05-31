@@ -1,9 +1,6 @@
-use macroquad::{prelude::WHITE, text::measure_text, window::screen_width};
-
 use super::{
     color_lerp, draw_circle, draw_line, draw_rectangle, draw_text, f32, screen_height, sigmoidf,
-    Color, Renderinfo, EPOCH_MAX, GRAY, LEARNING_RATE, LINE_COLOR, LOAD_BUTTON_COORDS, NN,
-    PAUSE_BUTTON_COORDS, RESET_BUTTON_COORDS, SAVE_BUTTON_COORDS, TEXT_COLOR,
+    Color, Renderinfo, EPOCH_MAX, GRAY, LEARNING_RATE, LINE_COLOR, NN, TEXT_COLOR,
 };
 
 pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &Renderinfo) {
@@ -12,38 +9,12 @@ pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &Renderinfo) {
     draw_nn(&nn, width, height);
     draw_graph(width, height, info);
     draw_data(info, nn);
-    draw_button(
-        RESET_BUTTON_COORDS.0 + screen_width() - RESET_BUTTON_COORDS.2 * 2.,
-        RESET_BUTTON_COORDS.1,
-        RESET_BUTTON_COORDS.2,
-        RESET_BUTTON_COORDS.3,
-        "Reset",
-        Color::new(0.4, 0.2, 0.2, 0.5),
-    );
-    draw_button(
-        PAUSE_BUTTON_COORDS.0 + screen_width() - RESET_BUTTON_COORDS.2 * 2.,
-        PAUSE_BUTTON_COORDS.1,
-        PAUSE_BUTTON_COORDS.2,
-        PAUSE_BUTTON_COORDS.3,
-        "Pause",
-        Color::new(0.2, 0.2, 0.2, 0.5),
-    );
-    draw_button(
-        SAVE_BUTTON_COORDS.0 + screen_width() - RESET_BUTTON_COORDS.2 * 2.,
-        SAVE_BUTTON_COORDS.1,
-        SAVE_BUTTON_COORDS.2,
-        SAVE_BUTTON_COORDS.3,
-        "Save",
-        Color::new(0.2, 0.4, 0.2, 0.5),
-    );
-    draw_button(
-        LOAD_BUTTON_COORDS.0 + screen_width() - RESET_BUTTON_COORDS.2 * 2.,
-        LOAD_BUTTON_COORDS.1,
-        LOAD_BUTTON_COORDS.2,
-        LOAD_BUTTON_COORDS.3,
-        "Load",
-        Color::new(0.2, 0.2, 0.2, 0.5),
-    );
+    // Right top corner
+    draw_text("s - save", width - 100., 0., 20., TEXT_COLOR);
+    draw_text("l - load", width - 100., 20., 20., TEXT_COLOR);
+    draw_text("r - reset", width - 100., 40., 20., TEXT_COLOR);
+    draw_text("p - pause", width - 100., 60., 20., TEXT_COLOR);
+    draw_text("q - quit", width - 100., 80., 20., TEXT_COLOR);
 }
 
 fn draw_nn(nn: &NN, width: f32, height: f32) {
@@ -218,18 +189,4 @@ fn draw_data(info: &Renderinfo, mut nn: NN) {
             TEXT_COLOR,
         );
     }
-}
-
-fn draw_button(x: f32, y: f32, width: f32, height: f32, text: &str, color: Color) {
-    draw_rectangle(x, y, width, height, color);
-    let text_width = measure_text(text, None, 20, 1.0).width;
-    let text_height = measure_text(text, None, 20, 1.0).height;
-    let font_size = 20.0;
-    draw_text(
-        text,
-        x + width / 2.0 - text_width / 2.0,
-        y + height / 2.0 - text_height / 2.0 + (font_size / 2.0),
-        font_size,
-        WHITE,
-    );
 }

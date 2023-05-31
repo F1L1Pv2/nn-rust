@@ -75,6 +75,13 @@ async fn main() {
                 continue 'main;
             }
 
+            // Pause?
+            if is_key_down(KeyCode::P) {
+                while is_key_down(KeyCode::P) {
+                    next_frame().await;
+                }
+            }
+
             NN::backprop(&mut nn, &mut g, &t_input, &t_output);
             NN::learn(&mut nn, &g, LEARNING_RATE);
 
@@ -82,43 +89,6 @@ async fn main() {
                 cost = NN::cost(&nn, &t_input, &t_output);
                 println!("i:{i} cost:{cost:?}");
                 info.cost_history.push(cost);
-
-                // Button input
-                if is_mouse_button_down(MouseButton::Left) {
-                    // Reset button
-                    // println!("mouse: {:?}", mouse_position());
-                    if is_mouse_inside(
-                        // We need to do some more math because the buttons are top right, not top left
-                        (
-                            RESET_BUTTON_COORDS.0 + screen_width() - RESET_BUTTON_COORDS.2 * 2.,
-                            RESET_BUTTON_COORDS.0 + RESET_BUTTON_COORDS.2 + screen_width()
-                                - RESET_BUTTON_COORDS.2 * 2.,
-                        ),
-                        (
-                            RESET_BUTTON_COORDS.1,
-                            RESET_BUTTON_COORDS.1 + RESET_BUTTON_COORDS.3,
-                        ),
-                    ) {
-                        continue 'main;
-                    }
-
-                    // Save button (saves json of network to a file)
-                    if is_mouse_inside(
-                        (
-                            SAVE_BUTTON_COORDS.0 + screen_width() - SAVE_BUTTON_COORDS.2 * 2.,
-                            SAVE_BUTTON_COORDS.0 + SAVE_BUTTON_COORDS.2 + screen_width()
-                                - SAVE_BUTTON_COORDS.2 * 2.,
-                        ),
-                        (
-                            SAVE_BUTTON_COORDS.1,
-                            SAVE_BUTTON_COORDS.1 + SAVE_BUTTON_COORDS.3,
-                        ),
-                    ) {
-                        let json = NN::to_json(&nn);
-                        std::fs::write("nn.json", json).unwrap();
-                        println!("Saved network to nn.json");
-                    }
-                }
 
                 clear_background(BACKGROUND_COLOR);
                 draw_frame(&nn, screen_width(), screen_height() / 1.2, &info);
@@ -174,9 +144,4 @@ fn window_conf() -> Conf {
         window_resizable: true,
         ..Default::default()
     }
-}
-
-fn is_mouse_inside(x: (f32, f32), y: (f32, f32)) -> bool {
-    let mouse_pos = mouse_position();
-    mouse_pos.0 >= x.0 && mouse_pos.0 <= x.1 && mouse_pos.1 >= y.0 && mouse_pos.1 <= y.1
 }
