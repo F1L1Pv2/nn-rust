@@ -16,12 +16,6 @@ const BACKGROUND_COLOR: Color = BLACK;
 const TEXT_COLOR: Color = WHITE;
 const LINE_COLOR: Color = RED;
 
-// X Y WIDTH HEIGHT
-pub const RESET_BUTTON_COORDS: (f32, f32, f32, f32) = (0., 00., 100., 40.);
-pub const PAUSE_BUTTON_COORDS: (f32, f32, f32, f32) = (100., 00., 100., 40.);
-pub const SAVE_BUTTON_COORDS: (f32, f32, f32, f32) = (0., 40., 100., 40.);
-pub const LOAD_BUTTON_COORDS: (f32, f32, f32, f32) = (100., 40., 100., 40.);
-
 #[derive(Clone, Debug)]
 pub struct Renderinfo {
     epoch: i32,
@@ -44,7 +38,7 @@ async fn main() {
 
         NN::randomize(&mut nn, -1.0, 1.0);
         let mut cost = NN::cost(&nn, &t_input, &t_output);
-        println!("Initial cost: {}", cost);
+        println!("Initial cost: {cost}");
 
         let mut paused = false;
 
@@ -178,7 +172,7 @@ fn color_lerp(a: Color, b: Color, t: f32) -> Color {
 
 fn window_conf() -> Conf {
     Conf {
-        window_title: "Neural Network Visualization".to_owned(),
+        window_title: "nn-rust".to_owned(),
         window_width: WINDOW_WIDTH,
         window_height: WINDOW_HEIGHT,
         window_resizable: true,

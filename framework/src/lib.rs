@@ -56,8 +56,8 @@ impl NN {
         let mut cost = 0.0;
         // to idzie przez kazdy training data (index training data)
         for i in 0..n {
-            let x: Mat = Mat::row(&t_input, i);
-            let y: Mat = Mat::row(&t_output, i);
+            let x: Mat = Mat::row(t_input, i);
+            let y: Mat = Mat::row(t_output, i);
 
             Mat::copy(&mut nn_input!(nn), &x);
             Self::forward(&mut nn);
@@ -122,7 +122,7 @@ impl NN {
 
     pub fn finite_diff(nn: &mut NN, g: &mut NN, eps: f32, t_input: &Mat, t_output: &Mat) {
         let mut saved: f32;
-        let c = Self::cost(&nn, &t_input.clone(), &t_output.clone());
+        let c = Self::cost(nn, &t_input.clone(), &t_output.clone());
 
         for i in 0..nn.count - 1 {
             for j in 0..nn.weights[i].rows {
@@ -130,7 +130,7 @@ impl NN {
                     saved = nn.weights[i].data[j][k];
                     nn.weights[i].data[j][k] += eps;
                     g.weights[i].data[j][k] =
-                        (Self::cost(&nn, &t_input.clone(), &t_output.clone()) - c) / eps;
+                        (Self::cost(nn, &t_input.clone(), &t_output.clone()) - c) / eps;
                     nn.weights[i].data[j][k] = saved;
                 }
             }
@@ -140,7 +140,7 @@ impl NN {
                     saved = nn.biases[i].data[j][k];
                     nn.biases[i].data[j][k] += eps;
                     g.biases[i].data[j][k] =
-                        (Self::cost(&nn, &t_input.clone(), &t_output.clone()) - c) / eps;
+                        (Self::cost(nn, &t_input.clone(), &t_output.clone()) - c) / eps;
                     nn.biases[i].data[j][k] = saved;
                 }
             }
@@ -155,7 +155,7 @@ impl NN {
         NN::zero(g);
 
         for i in 0..n {
-            Mat::copy(&mut nn_input!(nn), &Mat::row(&t_input, i));
+            Mat::copy(&mut nn_input!(nn), &Mat::row(t_input, i));
             Self::forward(nn);
 
             for j in 0..nn.count {
@@ -234,24 +234,24 @@ impl NN {
         s.push_str("\"weights\":[");
 
         for i in 0..nn.count - 1 {
-            s.push_str(&format!("{}", Mat::to_json(&nn.weights[i])));
+            s.push_str(&Mat::to_json(&nn.weights[i]).to_string());
             if i < nn.count - 2 {
-                s.push_str(",");
+                s.push(',');
             }
         }
 
         s.push_str("],\"biases\":[");
 
         for i in 0..nn.count - 1 {
-            s.push_str(&format!("{}", Mat::to_json(&nn.biases[i])));
+            s.push_str(&Mat::to_json(&nn.biases[i]).to_string());
             if i < nn.count - 2 {
-                s.push_str(",");
+                s.push(',');
             }
         }
 
         s.push_str("]}");
 
-        return s;
+        s
     }
 }
 #[derive(Clone, Debug)]
@@ -319,7 +319,7 @@ impl Mat {
     }
 
     pub fn sig(dst: &mut Mat) {
-        for row in dst.data.iter_mut() {
+        for row in &mut dst.data {
             for val in row.iter_mut() {
                 *val = sigmoidf(*val);
             }
@@ -327,11 +327,11 @@ impl Mat {
     }
 
     pub fn row(mat: &Mat, row: usize) -> Mat {
-        return Mat {
+        Mat {
             rows: 1,
             cols: mat.cols,
             data: vec![mat.data[row].clone()],
-        };
+        }
     }
 
     pub fn copy(dst: &mut Mat, src: &Mat) {
@@ -347,27 +347,27 @@ impl Mat {
     pub fn to_json(&self) -> String {
         // Not using serde_json because vec! is not supported
         let mut s = String::new();
-        s.push_str("[");
+        s.push('[');
         for i in 0..self.rows {
-            s.push_str("[");
+            s.push('[');
             for j in 0..self.cols {
                 s.push_str(&self.data[i][j].to_string());
                 if j != self.cols - 1 {
-                    s.push_str(",");
+                    s.push(',');
                 }
             }
-            s.push_str("]");
+            s.push(']');
             if i != self.rows - 1 {
-                s.push_str(",");
+                s.push(',');
             }
         }
-        s.push_str("]");
+        s.push(']');
         s
     }
 }
 
 pub fn sigmoidf(x: f32) -> f32 {
-    return 1.0 / (1.0 + (-x).exp());
+    1.0 / (1.0 + (-x).exp())
 }
 
 pub fn rand_float(min: f32, max: f32) -> f32 {

@@ -119,7 +119,7 @@ mod tests {
 
         NN::forward(&mut nn);
 
-        assert_eq!(nn.activations[1].data[0][0], 0.63181245);
-        assert_eq!(nn.activations[1].data[0][1], 0.6592604);
+        assert_eq!(nn.activations[1].data[0][0], 0.631_812_45);
+        assert_eq!(nn.activations[1].data[0][1], 0.659_260_4);
     }
 }
