@@ -21,118 +21,6 @@ macro_rules! nn_output {
 // }
 
 #[derive(Clone, Debug)]
-pub struct Mat {
-    pub rows: usize,
-    pub cols: usize,
-    pub data: Vec<Vec<f32>>,
-}
-
-impl Mat {
-    pub fn new(data: &[&[f32]]) -> Mat {
-        let rows = data.len();
-        let cols = data[0].len();
-
-        let mut mat = Mat {
-            rows,
-            cols,
-            data: vec![vec![0.0; cols]; rows],
-        };
-
-        for (i, row) in data.iter().enumerate() {
-            for (j, val) in row.iter().enumerate() {
-                mat.data[i][j] = *val;
-            }
-        }
-
-        mat
-    }
-
-    // do a jest dodawane b
-    pub fn sum(a: &mut Mat, b: &Mat) {
-        assert_eq!(a.rows, b.rows);
-        assert_eq!(a.cols, b.cols);
-
-        for (i, row) in a.data.iter_mut().enumerate() {
-            for (j, val) in row.iter_mut().enumerate() {
-                *val += b.data[i][j];
-            }
-        }
-    }
-
-    pub fn dot(dst: &mut Mat, a: &Mat, b: &Mat) {
-        assert_eq!(a.cols, b.rows);
-        // let n = a.cols;
-        assert_eq!(dst.rows, a.rows);
-        assert_eq!(dst.cols, b.cols);
-
-        Mat::fill(dst, 0.0);
-
-        for (i, row) in dst.data.iter_mut().enumerate() {
-            for (k, val) in a.data[i].iter().enumerate() {
-                for (j, val2) in row.iter_mut().enumerate() {
-                    *val2 += val * b.data[k][j];
-                }
-            }
-        }
-    }
-
-    pub fn fill(dst: &mut Mat, val: f32) {
-        for i in 0..dst.rows {
-            for j in 0..dst.cols {
-                dst.data[i][j] = val;
-            }
-        }
-    }
-
-    pub fn sig(dst: &mut Mat) {
-        for row in dst.data.iter_mut() {
-            for val in row.iter_mut() {
-                *val = sigmoidf(*val);
-            }
-        }
-    }
-
-    pub fn row(mat: &Mat, row: usize) -> Mat {
-        return Mat {
-            rows: 1,
-            cols: mat.cols,
-            data: vec![mat.data[row].clone()],
-        };
-    }
-
-    pub fn copy(dst: &mut Mat, src: &Mat) {
-        assert_eq!(dst.rows, src.rows);
-        assert_eq!(dst.cols, src.cols);
-        for i in 0..dst.rows {
-            for j in 0..dst.cols {
-                dst.data[i][j] = src.data[i][j];
-            }
-        }
-    }
-
-    pub fn to_json(&self) -> String {
-        // Not using serde_json because vec! is not supported
-        let mut s = String::new();
-        s.push_str("[");
-        for i in 0..self.rows {
-            s.push_str("[");
-            for j in 0..self.cols {
-                s.push_str(&self.data[i][j].to_string());
-                if j != self.cols - 1 {
-                    s.push_str(",");
-                }
-            }
-            s.push_str("]");
-            if i != self.rows - 1 {
-                s.push_str(",");
-            }
-        }
-        s.push_str("]");
-        s
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct NN {
     pub count: usize,
     pub weights: Vec<Mat>,
@@ -364,6 +252,117 @@ impl NN {
         s.push_str("]}");
 
         return s;
+    }
+}
+#[derive(Clone, Debug)]
+pub struct Mat {
+    pub rows: usize,
+    pub cols: usize,
+    pub data: Vec<Vec<f32>>,
+}
+
+impl Mat {
+    pub fn new(data: &[&[f32]]) -> Mat {
+        let rows = data.len();
+        let cols = data[0].len();
+
+        let mut mat = Mat {
+            rows,
+            cols,
+            data: vec![vec![0.0; cols]; rows],
+        };
+
+        for (i, row) in data.iter().enumerate() {
+            for (j, val) in row.iter().enumerate() {
+                mat.data[i][j] = *val;
+            }
+        }
+
+        mat
+    }
+
+    // do a jest dodawane b
+    pub fn sum(a: &mut Mat, b: &Mat) {
+        assert_eq!(a.rows, b.rows);
+        assert_eq!(a.cols, b.cols);
+
+        for (i, row) in a.data.iter_mut().enumerate() {
+            for (j, val) in row.iter_mut().enumerate() {
+                *val += b.data[i][j];
+            }
+        }
+    }
+
+    pub fn dot(dst: &mut Mat, a: &Mat, b: &Mat) {
+        assert_eq!(a.cols, b.rows);
+        // let n = a.cols;
+        assert_eq!(dst.rows, a.rows);
+        assert_eq!(dst.cols, b.cols);
+
+        Mat::fill(dst, 0.0);
+
+        for (i, row) in dst.data.iter_mut().enumerate() {
+            for (k, val) in a.data[i].iter().enumerate() {
+                for (j, val2) in row.iter_mut().enumerate() {
+                    *val2 += val * b.data[k][j];
+                }
+            }
+        }
+    }
+
+    pub fn fill(dst: &mut Mat, val: f32) {
+        for i in 0..dst.rows {
+            for j in 0..dst.cols {
+                dst.data[i][j] = val;
+            }
+        }
+    }
+
+    pub fn sig(dst: &mut Mat) {
+        for row in dst.data.iter_mut() {
+            for val in row.iter_mut() {
+                *val = sigmoidf(*val);
+            }
+        }
+    }
+
+    pub fn row(mat: &Mat, row: usize) -> Mat {
+        return Mat {
+            rows: 1,
+            cols: mat.cols,
+            data: vec![mat.data[row].clone()],
+        };
+    }
+
+    pub fn copy(dst: &mut Mat, src: &Mat) {
+        assert_eq!(dst.rows, src.rows);
+        assert_eq!(dst.cols, src.cols);
+        for i in 0..dst.rows {
+            for j in 0..dst.cols {
+                dst.data[i][j] = src.data[i][j];
+            }
+        }
+    }
+
+    pub fn to_json(&self) -> String {
+        // Not using serde_json because vec! is not supported
+        let mut s = String::new();
+        s.push_str("[");
+        for i in 0..self.rows {
+            s.push_str("[");
+            for j in 0..self.cols {
+                s.push_str(&self.data[i][j].to_string());
+                if j != self.cols - 1 {
+                    s.push_str(",");
+                }
+            }
+            s.push_str("]");
+            if i != self.rows - 1 {
+                s.push_str(",");
+            }
+        }
+        s.push_str("]");
+        s
     }
 }
 

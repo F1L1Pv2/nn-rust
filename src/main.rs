@@ -82,6 +82,7 @@ async fn main() {
                 println!("i:{i} cost:{cost:?}");
                 info.cost_history.push(cost);
 
+                // Quit?
                 if is_key_pressed(KeyCode::Escape) || is_key_pressed(KeyCode::Q) {
                     std::process::exit(0);
                 }
@@ -115,6 +116,19 @@ async fn main() {
                     file.write_all(json.as_bytes()).unwrap();
                     println!("Saved to nn.json");
                 }
+
+                // Load?
+                // if is_key_pressed(KeyCode::L) {
+                //     if !std::path::Path::new("nn.json").exists() {
+                //         println!("nn.json does not exist");
+                //         continue;
+                //     }
+                //     let mut file = File::open("nn.json").unwrap();
+                //     let mut json = String::new();
+                //     file.read_to_string(&mut json).unwrap();
+                //     nn = NN::from_json(&json);
+                //     println!("Loaded from nn.json");
+                // }
 
                 clear_background(BACKGROUND_COLOR);
                 draw_frame(&nn, screen_width(), screen_height() / 1.2, &info);

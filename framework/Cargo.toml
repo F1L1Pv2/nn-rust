@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 rand = "0.8.4"
+serde_json = "1"
 
 # Rayon is useless in this project, it just slowed things down
