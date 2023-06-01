@@ -61,8 +61,7 @@ async fn main() {
             println!("Initial cost: {cost}");
         }
 
-        let mut paused = false;
-
+        // let mut paused = false;
         let time_elapsed = chrono::Utc::now().timestamp_millis();
         let info = Arc::new(Mutex::new(Renderinfo {
             epoch: 0,
@@ -90,36 +89,48 @@ async fn main() {
         let info_clone = Arc::clone(&info);
         let training_thread = thread::spawn(move || {
             for i in 0..=EPOCH_MAX {
-                let mut info = info_clone.lock().unwrap();
-                info.epoch = i;
-                info.t_input = t_input.clone();
-                info.t_output = t_output.clone();
-                info.training_time =
-                    (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32 / 1000.0;
+                {
+                    let mut info = info_clone.lock().unwrap();
+                    info.epoch = i;
+                    info.t_input = t_input.clone();
+                    info.t_output = t_output.clone();
+                    info.training_time =
+                        (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32 / 1000.0;
+                }
 
-                let mut nn = nn_clone.lock().unwrap();
-                NN::backprop(&mut nn, &mut g, &t_input, &t_output);
-                NN::learn(&mut nn, &g, LEARNING_RATE);
+                {
+                    let mut nn = nn_clone.lock().unwrap();
+                    NN::backprop(&mut nn, &mut g, &t_input, &t_output);
+                    NN::learn(&mut nn, &g, LEARNING_RATE);
+                }
 
                 if i % 1000 == 0 {
-                    let cost = NN::cost(&nn, &t_input, &t_output);
+                    let cost;
+                    {
+                        let nn = nn_clone.lock().unwrap();
+                        cost = NN::cost(&nn, &t_input, &t_output);
+                    }
                     println!("i:{i} cost:{cost:?}");
-                    info.cost_history.push(cost);
+                    {
+                        let mut info = info_clone.lock().unwrap();
+                        info.cost = cost;
+                        info.cost_history.push(cost);
+                    }
                 }
             }
 
             // TESTING
             for i in 0..t_input.rows {
-                let mut nn = nn_clone.lock().unwrap();
-                nn.activations[0].data[0][0] = t_input.data[i][0];
-                nn.activations[0].data[0][1] = t_input.data[i][1];
+                let output;
+                {
+                    let mut nn = nn_clone.lock().unwrap();
+                    nn.activations[0].data[0][0] = t_input.data[i][0];
+                    nn.activations[0].data[0][1] = t_input.data[i][1];
 
-                NN::forward(&mut nn);
-                println!(
-                    "input:{:?} output:{:?}",
-                    t_input.data[i],
-                    nn.activations[nn.count - 1].data[0]
-                );
+                    NN::forward(&mut nn);
+                    output = nn.activations[nn.count - 1].data[0].clone();
+                }
+                println!("input:{:?} output:{:?}", t_input.data[i], output);
             }
             println!("training time:{}", info_clone.lock().unwrap().training_time);
         });
@@ -137,23 +148,7 @@ async fn main() {
 
             // Pause?
             if is_key_pressed(KeyCode::P) {
-                paused = !paused;
-                if paused {
-                    loop {
-                        clear_background(BACKGROUND_COLOR);
-                        {
-                            let info = info.lock().unwrap();
-                            let nn = nn.lock().unwrap();
-                            draw_frame(&nn, screen_width(), screen_height() / 1.2, &info);
-                        }
-                        next_frame().await;
-
-                        if is_key_pressed(KeyCode::P) {
-                            paused = false;
-                            break;
-                        }
-                    }
-                }
+                println!("WIP")
             }
 
             // Save?
