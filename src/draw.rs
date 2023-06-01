@@ -181,8 +181,8 @@ fn draw_data(info: &Renderinfo, mut nn: NN) {
 
     // Write the testing results at the bottom left
     for i in 0..info.t_input.rows {
-        for j in 0..nn.activations[0].rows {
-            nn.activations[0].data[j][0] = info.t_input.data[i][j];
+        for j in 0..nn.activations[0].data[0].len() {
+            nn.activations[0].data[0][j] = info.t_input.data[i][j];
         }
 
         NN::forward(&mut nn);
@@ -191,7 +191,7 @@ fn draw_data(info: &Renderinfo, mut nn: NN) {
                 // Input | Output
                 "{:?} -> {:?}",
                 info.t_input.data[i],
-                nn.activations[nn.count - 1].data[0]
+                nn.activations[nn.count - 1].data[0] // -1 because the last activation is the output
             )
             .as_str(),
             0.,

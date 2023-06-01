@@ -31,7 +31,7 @@ enum Signal {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let nn_structure = &[2, 4, 1];
+    let nn_structure = &[2, 4, 4, 1];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
     let gradient = NN::new(nn_structure);
 
