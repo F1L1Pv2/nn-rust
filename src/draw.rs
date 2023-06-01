@@ -20,10 +20,7 @@ const HIGH_COLOR: Color = Color {
 pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &mut Renderinfo) {
     let nn = nn.clone();
 
-    let cost;
-
-    let nn = nn.clone();
-    cost = NN::cost(&nn, &info.t_input, &info.t_output);
+    let cost = NN::cost(&nn, &info.t_input, &info.t_output);
 
     info.cost = cost;
     info.cost_history.push(cost);
