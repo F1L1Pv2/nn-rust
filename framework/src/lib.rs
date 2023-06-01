@@ -257,7 +257,7 @@ impl NN {
     pub fn from_json(s: &str) -> NN {
         let mut nn = NN::alloc(&[0]);
 
-        let v: serde_json::Value = serde_json::from_str(s).unwrap();
+        let v: serde_json::Value = serde_json::from_str(s).expect("JSON error");
 
         nn.count = v["count"].as_u64().unwrap() as usize;
 

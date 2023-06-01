@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::Write,
+    io::{Read, Write},
     sync::{Arc, Mutex},
     thread,
 };
@@ -9,7 +9,7 @@ use framework::{sigmoidf, Mat, NN};
 use macroquad::prelude::*;
 
 mod draw;
-use draw::draw_frame;
+use draw::{draw_frame, Renderinfo};
 
 const EPOCH_MAX: i32 = 100_000;
 const LEARNING_RATE: f32 = 1.;
@@ -20,29 +20,6 @@ const WINDOW_HEIGHT: i32 = 600;
 const BACKGROUND_COLOR: Color = BLACK;
 const TEXT_COLOR: Color = WHITE;
 const LINE_COLOR: Color = RED;
-
-#[derive(Clone, Debug)]
-pub struct Renderinfo {
-    epoch: i32,
-    cost: f32,
-    t_input: Mat,
-    t_output: Mat,
-    training_time: f32,
-    cost_history: Vec<f32>,
-}
-
-impl Renderinfo {
-    pub fn new(t_input: &Mat, t_output: &Mat) -> Renderinfo {
-        Renderinfo {
-            epoch: 0,
-            cost: 0.,
-            t_input: t_input.clone(),
-            t_output: t_output.clone(),
-            training_time: 0.,
-            cost_history: Vec::new(),
-        }
-    }
-}
 
 #[macroquad::main(window_conf)]
 async fn main() {
@@ -168,15 +145,43 @@ async fn main() {
             // Save?
             if is_key_pressed(KeyCode::S) {
                 let nn = nn.lock().unwrap();
-                let json = NN::to_json(&nn);
+                let nn_json = NN::to_json(&nn);
+                let renderinfo_json = Renderinfo::to_json(&info.lock().unwrap());
                 let mut file = File::create("nn.json").unwrap();
+                // Conbine the jsons
+                let json = format!("{{\"nn\":{},\"renderinfo\":{}}}", nn_json, renderinfo_json);
+                // Write to file
                 file.write_all(json.as_bytes()).unwrap();
                 println!("Saved to nn.json");
             }
 
             // Load?
             if is_key_pressed(KeyCode::L) {
-                println!("Loading is WIP")
+                let mut file = File::open("nn.json").unwrap();
+                let mut json = String::new();
+                file.read_to_string(&mut json).unwrap();
+                let nn_json = json.split("renderinfo\":").collect::<Vec<&str>>()[0];
+                let info_json = json.split("renderinfo\":").collect::<Vec<&str>>()[1];
+
+                let new_nn = NN::from_json(nn_json);
+                let new_info = Renderinfo::from_json(info_json);
+
+                // Stop the training thread
+                let _ = tx.send(());
+
+                // Change the nn to the loaded one
+                let mut nn = nn.lock().unwrap();
+                *nn = new_nn;
+
+                // Change the info to the loaded one
+                let mut info = info.lock().unwrap();
+                *info = new_info;
+
+                println!("Loaded from nn.json");
+                println!("{:?}", nn);
+
+                // Restart the training
+                continue 'main;
             }
 
             // if is_key_pressed(KeyCode::L) {
