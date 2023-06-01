@@ -20,10 +20,12 @@ const HIGH_COLOR: Color = Color {
 pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &mut Renderinfo) {
     let nn = nn.clone();
 
-    let cost = NN::cost(&nn, &info.t_input, &info.t_output);
+    if info.epoch < EPOCH_MAX {
+        let cost = NN::cost(&nn, &info.t_input, &info.t_output);
 
-    info.cost = cost;
-    info.cost_history.push(cost);
+        info.cost = cost;
+        info.cost_history.push(cost);
+    }
 
     draw_nn(&nn, width, height);
     draw_graph(width, height, &info);
@@ -112,7 +114,7 @@ fn draw_graph(width: f32, height: f32, info: &Renderinfo) {
     draw_text(
         "Cost History",
         graph_x,
-        graph_y,
+        graph_y - 10.,
         20.,
         Color {
             r: 1.,

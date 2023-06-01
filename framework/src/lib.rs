@@ -253,6 +253,22 @@ impl NN {
 
         s
     }
+
+    pub fn from_json(s: &str) -> NN {
+        let mut nn = NN::alloc(&[0]);
+
+        let v: serde_json::Value = serde_json::from_str(s).unwrap();
+
+        nn.count = v["count"].as_u64().unwrap() as usize;
+
+        for i in 0..nn.count - 1 {
+            nn.weights
+                .push(Mat::from_json(&v["weights"][i].to_string()));
+            nn.biases.push(Mat::from_json(&v["biases"][i].to_string()));
+        }
+
+        nn
+    }
 }
 #[derive(Clone, Debug)]
 pub struct Mat {
@@ -363,6 +379,27 @@ impl Mat {
         }
         s.push(']');
         s
+    }
+
+    pub fn from_json(s: &str) -> Mat {
+        let v: serde_json::Value = serde_json::from_str(s).unwrap();
+
+        let rows = v.as_array().unwrap().len();
+        let cols = v.as_array().unwrap()[0].as_array().unwrap().len();
+
+        let mut mat = Mat {
+            rows,
+            cols,
+            data: vec![vec![0.0; cols]; rows],
+        };
+
+        for (i, row) in v.as_array().unwrap().iter().enumerate() {
+            for (j, val) in row.as_array().unwrap().iter().enumerate() {
+                mat.data[i][j] = val.as_f64().unwrap() as f32;
+            }
+        }
+
+        mat
     }
 }
 

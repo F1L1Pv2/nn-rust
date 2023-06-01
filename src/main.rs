@@ -46,12 +46,11 @@ impl Renderinfo {
 
 #[macroquad::main(window_conf)]
 async fn main() {
+    let nn_structure = &[1, 5, 1];
+    let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
+    let g = NN::new(nn_structure);
+
     'main: loop {
-        let nn_structure = &[1, 5, 1];
-
-        let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
-        let mut g = NN::new(nn_structure);
-
         // XOR Example
         // let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
         // let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
@@ -84,6 +83,8 @@ async fn main() {
             &[0.9],
             &[1.0],
         ]);
+
+        let mut g = g.clone();
 
         let (tx, rx) = std::sync::mpsc::channel();
 
@@ -171,6 +172,31 @@ async fn main() {
                 file.write_all(json.as_bytes()).unwrap();
                 println!("Saved to nn.json");
             }
+
+            // Load?
+            if is_key_pressed(KeyCode::L) {
+                println!("Loading is WIP")
+            }
+
+            // if is_key_pressed(KeyCode::L) {
+            //     let mut file = File::open("nn.json").unwrap();
+            //     let mut json = String::new();
+            //     file.read_to_string(&mut json).unwrap();
+            //     let new_nn = NN::from_json(&json);
+
+            //     // Stop the training thread
+            //     let _ = tx.send(());
+
+            //     // Change the nn to the loaded one
+            //     let mut nn = nn.lock().unwrap();
+            //     *nn = new_nn;
+
+            //     println!("Loaded from nn.json");
+            //     println!("{:?}", nn);
+
+            //     // Restart the training
+            //     continue 'main;
+            // }
 
             clear_background(BACKGROUND_COLOR);
             {
