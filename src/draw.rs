@@ -1,3 +1,5 @@
+use macroquad::window::screen_width;
+
 use super::{
     color_lerp, draw_circle, draw_line, draw_rectangle, draw_text, f32, screen_height, sigmoidf,
     Color, Mat, EPOCH_MAX, GRAY, LEARNING_RATE, LINE_COLOR, NN, TEXT_COLOR,
@@ -25,22 +27,25 @@ pub struct Renderinfo {
     pub t_output: Mat,
     pub training_time: f32,
     pub cost_history: Vec<f32>,
+    pub paused: bool,
 }
 
-pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &mut Renderinfo) {
+pub fn draw_frame(nn: &NN, info: &mut Renderinfo) {
     let nn = nn.clone();
+    let (width, height) = (screen_width(), screen_height());
 
-    if info.epoch < EPOCH_MAX {
+    // Skip epoch 0 because the value is already in the cost history (from creating the struct)
+    if info.epoch < EPOCH_MAX && !info.paused && info.epoch != 0 {
         let cost = NN::cost(&nn, &info.t_input, &info.t_output);
 
         info.cost = cost;
         info.cost_history.push(cost);
     }
 
-    draw_nn(&nn, width, height);
+    draw_nn(&nn, width, height * 0.8);
     draw_graph(width, height, info);
     draw_data(info, nn);
-    // Right top corner
+
     draw_text("r - reset", width - 100., 20., 20., TEXT_COLOR);
     draw_text("p - pause", width - 100., 40., 20., TEXT_COLOR);
     draw_text("q - quit", width - 100., 60., 20., TEXT_COLOR);
@@ -105,7 +110,7 @@ fn draw_graph(width: f32, height: f32, info: &Renderinfo) {
     let graph_width = width * 0.3;
     let graph_height = height * 0.3;
     let graph_x = x + width - graph_width;
-    let graph_y = y + height - (graph_height * 0.4);
+    let graph_y = y + height - graph_height;
 
     draw_rectangle(
         graph_x,
@@ -120,9 +125,9 @@ fn draw_graph(width: f32, height: f32, info: &Renderinfo) {
         },
     );
     draw_text(
-        "Cost History",
+        format!("Cost: {}", info.cost).as_str(),
         graph_x,
-        graph_y - 10.,
+        graph_y - 5.,
         20.,
         Color {
             r: 1.,
@@ -133,6 +138,7 @@ fn draw_graph(width: f32, height: f32, info: &Renderinfo) {
     );
 
     let mut max_cost = 0.;
+    // Check for max cost
     for i in 0..info.cost_history.len() {
         if info.cost_history[i] > max_cost {
             max_cost = info.cost_history[i];
@@ -140,11 +146,8 @@ fn draw_graph(width: f32, height: f32, info: &Renderinfo) {
     }
     let mut last_x = graph_x;
     let mut last_y;
-    if info.cost_history.is_empty() {
-        last_y = graph_y + graph_height;
-    } else {
-        last_y = graph_y + graph_height - info.cost_history[0] / max_cost * graph_height;
-    }
+    last_y = graph_y + graph_height - info.cost_history[0] / max_cost * graph_height;
+
     for i in 0..info.cost_history.len() {
         let x = graph_x + i as f32 * graph_width / info.cost_history.len() as f32;
         let y = graph_y + graph_height - info.cost_history[i] / max_cost * graph_height;
@@ -155,32 +158,23 @@ fn draw_graph(width: f32, height: f32, info: &Renderinfo) {
 }
 
 fn draw_data(info: &Renderinfo, mut nn: NN) {
-    // Write the parameters at the bottom left
+    // Top right parameters
     draw_text(
-        format!("Epoch: {}/{}", info.epoch, EPOCH_MAX,).as_str(),
+        format!(
+            "Epoch: {}/{} | Learning Rate: {:.4}",
+            info.epoch, EPOCH_MAX, LEARNING_RATE
+        )
+        .as_str(),
         0.,
         15.,
         20.,
         TEXT_COLOR,
     );
+
     draw_text(
-        format!("Cost: {}", info.cost,).as_str(),
+        format!("Training time: {:.2}s", info.training_time).as_str(),
         0.,
         30.,
-        20.,
-        TEXT_COLOR,
-    );
-    draw_text(
-        format!("Learning Rate: {LEARNING_RATE:.4}",).as_str(),
-        0.,
-        45.,
-        20.,
-        TEXT_COLOR,
-    );
-    draw_text(
-        format!("Training time: {:.4}s", info.training_time).as_str(),
-        0.,
-        60.,
         20.,
         TEXT_COLOR,
     );

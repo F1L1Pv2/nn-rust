@@ -1,5 +1,8 @@
 use std::{
-    sync::{Arc, Mutex},
+    sync::{
+        mpsc::{channel, Receiver, Sender},
+        Arc, Mutex,
+    },
     thread,
 };
 
@@ -19,13 +22,20 @@ const BACKGROUND_COLOR: Color = BLACK;
 const TEXT_COLOR: Color = WHITE;
 const LINE_COLOR: Color = RED;
 
+#[derive(PartialEq)]
+enum Signal {
+    Pause,
+    Resume,
+    Stop,
+}
+
 #[macroquad::main(window_conf)]
 async fn main() {
     let nn_structure = &[1, 10, 10, 1];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
     let g = NN::new(nn_structure);
 
-    'main: loop {
+    'reset: loop {
         // XOR Example
         // let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
         // let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
@@ -61,35 +71,33 @@ async fn main() {
 
         let mut g = g.clone();
 
-        let (tx, rx) = std::sync::mpsc::channel();
+        let (tx, rx): (Sender<Signal>, Receiver<Signal>) = channel();
 
+        let mut paused = false;
+        let time_elapsed = chrono::Utc::now().timestamp_millis();
+
+        let info: Arc<Mutex<Renderinfo>>;
         {
+            // Calculate first cost for creating the struct
             let mut nn = nn.lock().unwrap();
             NN::randomize(&mut nn, -1.0, 1.0);
             let cost = NN::cost(&nn, &t_input, &t_output);
-            println!("Initial cost: {cost}");
+            println!("Initial cost: {}", cost);
+            info = Arc::new(Mutex::new(Renderinfo {
+                epoch: 0,
+                cost,
+                t_input: t_input.clone(),
+                t_output: t_output.clone(),
+                training_time: 0.0,
+                cost_history: vec![cost],
+                paused,
+            }));
         }
-
-        // let mut paused = false;
-        let time_elapsed = chrono::Utc::now().timestamp_millis();
-        let info = Arc::new(Mutex::new(Renderinfo {
-            epoch: 0,
-            cost: 0.0,
-            t_input: t_input.clone(),
-            t_output: t_output.clone(),
-            training_time: 0.0,
-            cost_history: Vec::new(),
-        }));
 
         clear_background(BACKGROUND_COLOR);
         {
             let mut info = info.lock().unwrap();
-            draw_frame(
-                &nn.lock().unwrap(),
-                screen_width(),
-                screen_height() / 1.2,
-                &mut info,
-            );
+            draw_frame(&nn.lock().unwrap(), &mut info);
         }
         next_frame().await;
 
@@ -98,10 +106,30 @@ async fn main() {
         let info_clone = Arc::clone(&info);
 
         let _training_thread = thread::spawn(move || {
-            for i in 0..=EPOCH_MAX {
-                // Check if we recieved a stop signal
-                if rx.try_recv().is_ok() {
-                    break;
+            'training: for i in 0..=EPOCH_MAX {
+                if let Ok(signal) = rx.try_recv() {
+                    match signal {
+                        Signal::Pause => {
+                            let mut info = info_clone.lock().unwrap();
+                            info.paused = true;
+                            drop(info);
+
+                            while let Ok(signal) = rx.recv() {
+                                if signal == Signal::Resume {
+                                    let mut info = info_clone.lock().unwrap();
+                                    info.paused = false;
+                                    drop(info);
+                                    break;
+                                } else if signal == Signal::Stop {
+                                    break 'training;
+                                }
+                            }
+                        }
+                        Signal::Stop => {
+                            break 'training;
+                        }
+                        _ => {}
+                    }
                 }
 
                 {
@@ -119,7 +147,10 @@ async fn main() {
                     NN::learn(&mut nn, &g, LEARNING_RATE);
                 }
             }
-            println!("training time:{}", info_clone.lock().unwrap().training_time);
+            println!(
+                "Training time: {}",
+                info_clone.lock().unwrap().training_time
+            );
         });
 
         loop {
@@ -131,25 +162,31 @@ async fn main() {
             // Reset?
             if is_key_pressed(KeyCode::R) {
                 // Stop the training thread
-                let _ = tx.send(());
+                let _ = tx.send(Signal::Stop);
+                println!("Reset");
                 // Restart the program
-                continue 'main;
+                continue 'reset;
             }
 
-            // Pause?
+            // Pause/Resume?
             if is_key_pressed(KeyCode::P) {
-                println!("WIP")
+                if paused {
+                    // Send a "resume" signal to the training thread
+                    let _ = tx.send(Signal::Resume);
+                    paused = false;
+                    println!("Resumed");
+                } else {
+                    // Send a "pause" signal to the training thread
+                    let _ = tx.send(Signal::Pause);
+                    paused = true;
+                    println!("Paused");
+                }
             }
 
             clear_background(BACKGROUND_COLOR);
             {
                 let mut info = info.lock().unwrap();
-                draw_frame(
-                    &nn.lock().unwrap(),
-                    screen_width(),
-                    screen_height() / 1.2,
-                    &mut info,
-                );
+                draw_frame(&nn.lock().unwrap(), &mut info);
             }
             next_frame().await;
         }
