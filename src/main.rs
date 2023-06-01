@@ -31,45 +31,45 @@ enum Signal {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let nn_structure = &[1, 10, 10, 1];
+    let nn_structure = &[2, 4, 1];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
-    let g = NN::new(nn_structure);
+    let gradient = NN::new(nn_structure);
 
     'reset: loop {
         // XOR Example
-        // let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
-        // let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
+        let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
+        let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
 
         // Opposite example
-        let t_input = Mat::new(&[
-            &[1.0],
-            &[0.9],
-            &[0.8],
-            &[0.7],
-            &[0.6],
-            &[0.5],
-            &[0.4],
-            &[0.3],
-            &[0.2],
-            &[0.1],
-            &[0.0],
-        ]);
+        // let t_input = Mat::new(&[
+        //     &[1.0],
+        //     &[0.9],
+        //     &[0.8],
+        //     &[0.7],
+        //     &[0.6],
+        //     &[0.5],
+        //     &[0.4],
+        //     &[0.3],
+        //     &[0.2],
+        //     &[0.1],
+        //     &[0.0],
+        // ]);
 
-        let t_output = Mat::new(&[
-            &[0.0],
-            &[0.1],
-            &[0.2],
-            &[0.3],
-            &[0.4],
-            &[0.5],
-            &[0.6],
-            &[0.7],
-            &[0.8],
-            &[0.9],
-            &[1.0],
-        ]);
+        // let t_output = Mat::new(&[
+        //     &[0.0],
+        //     &[0.1],
+        //     &[0.2],
+        //     &[0.3],
+        //     &[0.4],
+        //     &[0.5],
+        //     &[0.6],
+        //     &[0.7],
+        //     &[0.8],
+        //     &[0.9],
+        //     &[1.0],
+        // ]);
 
-        let mut g = g.clone();
+        let mut gradient = gradient.clone();
 
         let (tx, rx): (Sender<Signal>, Receiver<Signal>) = channel();
 
@@ -143,8 +143,8 @@ async fn main() {
 
                 {
                     let mut nn = nn_clone.lock().unwrap();
-                    NN::backprop(&mut nn, &mut g, &t_input, &t_output);
-                    NN::learn(&mut nn, &g, LEARNING_RATE);
+                    NN::backprop(&mut nn, &mut gradient, &t_input, &t_output);
+                    NN::learn(&mut nn, &gradient, LEARNING_RATE);
                 }
             }
             println!(

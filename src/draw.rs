@@ -191,7 +191,7 @@ fn draw_data(info: &Renderinfo, mut nn: NN) {
                 // Input | Output
                 "{:?} -> {:?}",
                 info.t_input.data[i],
-                nn.activations[nn.count - 1].data[0],
+                nn.activations[nn.count - 1].data[0]
             )
             .as_str(),
             0.,
