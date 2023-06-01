@@ -28,8 +28,8 @@ pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &mut Renderinfo) {
     }
 
     draw_nn(&nn, width, height);
-    draw_graph(width, height, &info);
-    draw_data(&info, nn);
+    draw_graph(width, height, info);
+    draw_data(info, nn);
     // Right top corner
     draw_text("s - save", width - 100., 20., 20., TEXT_COLOR);
     draw_text("l - load", width - 100., 40., 20., TEXT_COLOR);
@@ -186,11 +186,10 @@ fn draw_data(info: &Renderinfo, mut nn: NN) {
         NN::forward(&mut nn);
         draw_text(
             format!(
-                // Input | Output | Expected
-                "{:?} -> {:?} | {:?}",
+                // Input | Output
+                "{:?} -> {:?}",
                 info.t_input.data[i],
                 nn.activations[nn.count - 1].data[0],
-                info.t_output.data[i]
             )
             .as_str(),
             0.,

@@ -124,7 +124,8 @@ async fn main() {
 
         let _training_thread = thread::spawn(move || {
             for i in 0..=EPOCH_MAX {
-                if let Ok(_) = rx.try_recv() {
+                // Check if we recieved a stop signal
+                if rx.try_recv().is_ok() {
                     break;
                 }
 
