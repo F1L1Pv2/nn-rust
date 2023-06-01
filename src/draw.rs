@@ -17,12 +17,20 @@ const HIGH_COLOR: Color = Color {
     a: 1.,
 };
 
-pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &Renderinfo) {
+pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &mut Renderinfo) {
     let nn = nn.clone();
 
+    let cost;
+
+    let nn = nn.clone();
+    cost = NN::cost(&nn, &info.t_input, &info.t_output);
+
+    info.cost = cost;
+    info.cost_history.push(cost);
+
     draw_nn(&nn, width, height);
-    draw_graph(width, height, info);
-    draw_data(info, nn);
+    draw_graph(width, height, &info);
+    draw_data(&info, nn);
     // Right top corner
     draw_text("s - save", width - 100., 20., 20., TEXT_COLOR);
     draw_text("l - load", width - 100., 40., 20., TEXT_COLOR);
@@ -91,6 +99,7 @@ fn draw_graph(width: f32, height: f32, info: &Renderinfo) {
     let graph_height = height * 0.3;
     let graph_x = x + width - graph_width;
     let graph_y = y + height - (graph_height * 0.4);
+
     draw_rectangle(
         graph_x,
         graph_y,

@@ -47,7 +47,7 @@ impl Renderinfo {
 #[macroquad::main(window_conf)]
 async fn main() {
     'main: loop {
-        let nn_structure = &[1, 5,  1];
+        let nn_structure = &[1, 5, 1];
 
         let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
         let mut g = NN::new(nn_structure);
@@ -105,12 +105,12 @@ async fn main() {
 
         clear_background(BACKGROUND_COLOR);
         {
-            let info = info.lock().unwrap();
+            let mut info = info.lock().unwrap();
             draw_frame(
                 &nn.lock().unwrap(),
                 screen_width(),
                 screen_height() / 1.2,
-                &info,
+                &mut info,
             );
         }
         next_frame().await;
@@ -133,20 +133,6 @@ async fn main() {
                     let mut nn = nn_clone.lock().unwrap();
                     NN::backprop(&mut nn, &mut g, &t_input, &t_output);
                     NN::learn(&mut nn, &g, LEARNING_RATE);
-                }
-
-                if i % 1000 == 0 {
-                    let cost;
-                    {
-                        let nn = nn_clone.lock().unwrap();
-                        cost = NN::cost(&nn, &t_input, &t_output);
-                    }
-                    println!("i:{i} cost:{cost:?}");
-                    {
-                        let mut info = info_clone.lock().unwrap();
-                        info.cost = cost;
-                        info.cost_history.push(cost);
-                    }
                 }
             }
 
@@ -194,12 +180,12 @@ async fn main() {
 
             clear_background(BACKGROUND_COLOR);
             {
-                let info = info.lock().unwrap();
+                let mut info = info.lock().unwrap();
                 draw_frame(
                     &nn.lock().unwrap(),
                     screen_width(),
                     screen_height() / 1.2,
-                    &info,
+                    &mut info,
                 );
             }
             next_frame().await;
