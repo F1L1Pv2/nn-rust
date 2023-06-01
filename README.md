@@ -2,9 +2,13 @@
 
 Neural network framework made 100% in Rust. Code based on [nn.h](https://github.com/tsoding/nn.h). UI is threaded :)
 
-https://github.com/DuckyBlender/nn-rust/assets/42645784/6ed6bb45-099c-46bb-ace5-dff1eb3cc75c
+## Example NN (XOR Gate)
 
-## Todo
+https://github.com/DuckyBlender/nn-rust/assets/42645784/dbaabf6b-c1ff-4d30-ae2a-d0cd8db4ce78
+
+
+### Todo
+
 - [x] Make a GUI
 - [x] Make a cost graph
 - [x] ~Multithreading~ The rayon crate is slow in this project for some reason
