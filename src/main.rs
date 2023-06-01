@@ -120,6 +120,7 @@ async fn main() {
         // TRAINING
         let nn_clone = Arc::clone(&nn);
         let info_clone = Arc::clone(&info);
+
         let _training_thread = thread::spawn(move || {
             for i in 0..=EPOCH_MAX {
                 if let Ok(_) = rx.try_recv() {
@@ -140,21 +141,6 @@ async fn main() {
                     NN::backprop(&mut nn, &mut g, &t_input, &t_output);
                     NN::learn(&mut nn, &g, LEARNING_RATE);
                 }
-            }
-
-            // TESTING
-            for i in 0..t_input.rows {
-                let output;
-                {
-                    let mut nn = nn_clone.lock().unwrap();
-                    for j in 0..nn.activations[0].rows {
-                        nn.activations[0].data[j][0] = t_input.data[i][j];
-                    }
-
-                    NN::forward(&mut nn);
-                    output = nn.activations[nn.count - 1].data[0].clone();
-                }
-                println!("input:{:?} output:{:?}", t_input.data[i], output);
             }
             println!("training time:{}", info_clone.lock().unwrap().training_time);
         });
