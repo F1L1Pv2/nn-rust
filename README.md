@@ -2,7 +2,7 @@
 
 Neural network framework made 100% in Rust. Code based on [nn.h](https://github.com/tsoding/nn.h). UI is threaded :)
 
-<https://github.com/DuckyBlender/nn-rust/assets/42645784/fc037b3e-af26-4e4d-86f8-78cc6b602f52>
+https://github.com/DuckyBlender/nn-rust/assets/42645784/6ed6bb45-099c-46bb-ace5-dff1eb3cc75c
 
 ## Todo
 - [x] Make a GUI
