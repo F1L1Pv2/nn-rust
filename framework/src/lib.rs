@@ -225,50 +225,6 @@ impl NN {
             activations,
         }
     }
-
-    pub fn to_json(nn: &NN) -> String {
-        let mut s = String::new();
-
-        s.push_str(&format!("{{\"count\":{},", nn.count));
-
-        s.push_str("\"weights\":[");
-
-        for i in 0..nn.count - 1 {
-            s.push_str(&Mat::to_json(&nn.weights[i]).to_string());
-            if i < nn.count - 2 {
-                s.push(',');
-            }
-        }
-
-        s.push_str("],\"biases\":[");
-
-        for i in 0..nn.count - 1 {
-            s.push_str(&Mat::to_json(&nn.biases[i]).to_string());
-            if i < nn.count - 2 {
-                s.push(',');
-            }
-        }
-
-        s.push_str("]}");
-
-        s
-    }
-
-    pub fn from_json(s: &str) -> NN {
-        let mut nn = NN::alloc(&[0]);
-
-        let v: serde_json::Value = serde_json::from_str(s).expect("JSON error");
-
-        nn.count = v["count"].as_u64().unwrap() as usize;
-
-        for i in 0..nn.count - 1 {
-            nn.weights
-                .push(Mat::from_json(&v["weights"][i].to_string()));
-            nn.biases.push(Mat::from_json(&v["biases"][i].to_string()));
-        }
-
-        nn
-    }
 }
 #[derive(Clone, Debug)]
 pub struct Mat {
@@ -358,48 +314,6 @@ impl Mat {
                 dst.data[i][j] = src.data[i][j];
             }
         }
-    }
-
-    pub fn to_json(&self) -> String {
-        // Not using serde_json because vec! is not supported
-        let mut s = String::new();
-        s.push('[');
-        for i in 0..self.rows {
-            s.push('[');
-            for j in 0..self.cols {
-                s.push_str(&self.data[i][j].to_string());
-                if j != self.cols - 1 {
-                    s.push(',');
-                }
-            }
-            s.push(']');
-            if i != self.rows - 1 {
-                s.push(',');
-            }
-        }
-        s.push(']');
-        s
-    }
-
-    pub fn from_json(s: &str) -> Mat {
-        let v: serde_json::Value = serde_json::from_str(s).unwrap();
-
-        let rows = v.as_array().unwrap().len();
-        let cols = v.as_array().unwrap()[0].as_array().unwrap().len();
-
-        let mut mat = Mat {
-            rows,
-            cols,
-            data: vec![vec![0.0; cols]; rows],
-        };
-
-        for (i, row) in v.as_array().unwrap().iter().enumerate() {
-            for (j, val) in row.as_array().unwrap().iter().enumerate() {
-                mat.data[i][j] = val.as_f64().unwrap() as f32;
-            }
-        }
-
-        mat
     }
 }
 

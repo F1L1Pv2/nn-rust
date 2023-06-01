@@ -17,6 +17,16 @@ const HIGH_COLOR: Color = Color {
     a: 1.,
 };
 
+#[derive(Clone, Debug)]
+pub struct Renderinfo {
+    pub epoch: i32,
+    pub cost: f32,
+    pub t_input: Mat,
+    pub t_output: Mat,
+    pub training_time: f32,
+    pub cost_history: Vec<f32>,
+}
+
 pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &mut Renderinfo) {
     let nn = nn.clone();
 
@@ -31,11 +41,9 @@ pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &mut Renderinfo) {
     draw_graph(width, height, info);
     draw_data(info, nn);
     // Right top corner
-    draw_text("s - save", width - 100., 20., 20., TEXT_COLOR);
-    draw_text("l - load", width - 100., 40., 20., TEXT_COLOR);
-    draw_text("r - reset", width - 100., 60., 20., TEXT_COLOR);
-    draw_text("p - pause", width - 100., 80., 20., TEXT_COLOR);
-    draw_text("q - quit", width - 100., 100., 20., TEXT_COLOR);
+    draw_text("r - reset", width - 100., 20., 20., TEXT_COLOR);
+    draw_text("p - pause", width - 100., 40., 20., TEXT_COLOR);
+    draw_text("q - quit", width - 100., 60., 20., TEXT_COLOR);
 }
 
 fn draw_nn(nn: &NN, width: f32, height: f32) {
@@ -197,58 +205,5 @@ fn draw_data(info: &Renderinfo, mut nn: NN) {
             20.,
             TEXT_COLOR,
         );
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Renderinfo {
-    pub epoch: i32,
-    pub cost: f32,
-    pub t_input: Mat,
-    pub t_output: Mat,
-    pub training_time: f32,
-    pub cost_history: Vec<f32>,
-}
-
-impl Renderinfo {
-    pub fn new(t_input: &Mat, t_output: &Mat) -> Renderinfo {
-        Renderinfo {
-            epoch: 0,
-            cost: 0.,
-            t_input: t_input.clone(),
-            t_output: t_output.clone(),
-            training_time: 0.,
-            cost_history: Vec::new(),
-        }
-    }
-
-    pub fn from_json(json: &str) -> Renderinfo {
-        let mut info = Renderinfo::new(&Mat::new(&[&[0.0]]), &Mat::new(&[&[0.0]]));
-        let json = json::parse(json).unwrap();
-        info.epoch = json["epoch"].as_i32().unwrap();
-        info.cost = json["cost"].as_f32().unwrap();
-        info.training_time = json["training_time"].as_f32().unwrap();
-        info.cost_history = json["cost_history"]
-            .members()
-            .map(|x| x.as_f32().unwrap())
-            .collect();
-        info
-    }
-
-    pub fn to_json(&self) -> String {
-        let mut json = String::new();
-        json.push('{');
-        json.push_str(format!("\"epoch\": {},", self.epoch).as_str());
-        json.push_str(format!("\"cost\": {},", self.cost).as_str());
-        json.push_str(format!("\"training_time\": {},", self.training_time).as_str());
-        json.push_str("\"cost_history\": [");
-        for i in 0..self.cost_history.len() {
-            json.push_str(format!("{}", self.cost_history[i]).as_str());
-            if i != self.cost_history.len() - 1 {
-                json.push(',');
-            }
-        }
-        json.push_str("]}");
-        json
     }
 }

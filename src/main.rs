@@ -1,6 +1,4 @@
 use std::{
-    fs::File,
-    io::{Read, Write},
     sync::{Arc, Mutex},
     thread,
 };
@@ -23,7 +21,7 @@ const LINE_COLOR: Color = RED;
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let nn_structure = &[1, 5, 1];
+    let nn_structure = &[1, 10, 10, 1];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
     let g = NN::new(nn_structure);
 
@@ -134,6 +132,7 @@ async fn main() {
             if is_key_pressed(KeyCode::R) {
                 // Stop the training thread
                 let _ = tx.send(());
+                // Restart the program
                 continue 'main;
             }
 
@@ -141,68 +140,6 @@ async fn main() {
             if is_key_pressed(KeyCode::P) {
                 println!("WIP")
             }
-
-            // Save?
-            if is_key_pressed(KeyCode::S) {
-                let nn = nn.lock().unwrap();
-                let nn_json = NN::to_json(&nn);
-                let renderinfo_json = Renderinfo::to_json(&info.lock().unwrap());
-                let mut file = File::create("nn.json").unwrap();
-                // Conbine the jsons
-                let json = format!("{{\"nn\":{},\"renderinfo\":{}}}", nn_json, renderinfo_json);
-                // Write to file
-                file.write_all(json.as_bytes()).unwrap();
-                println!("Saved to nn.json");
-            }
-
-            // Load?
-            if is_key_pressed(KeyCode::L) {
-                let mut file = File::open("nn.json").unwrap();
-                let mut json = String::new();
-                file.read_to_string(&mut json).unwrap();
-                let nn_json = json.split("renderinfo\":").collect::<Vec<&str>>()[0];
-                let info_json = json.split("renderinfo\":").collect::<Vec<&str>>()[1];
-
-                let new_nn = NN::from_json(nn_json);
-                let new_info = Renderinfo::from_json(info_json);
-
-                // Stop the training thread
-                let _ = tx.send(());
-
-                // Change the nn to the loaded one
-                let mut nn = nn.lock().unwrap();
-                *nn = new_nn;
-
-                // Change the info to the loaded one
-                let mut info = info.lock().unwrap();
-                *info = new_info;
-
-                println!("Loaded from nn.json");
-                println!("{:?}", nn);
-
-                // Restart the training
-                continue 'main;
-            }
-
-            // if is_key_pressed(KeyCode::L) {
-            //     let mut file = File::open("nn.json").unwrap();
-            //     let mut json = String::new();
-            //     file.read_to_string(&mut json).unwrap();
-            //     let new_nn = NN::from_json(&json);
-
-            //     // Stop the training thread
-            //     let _ = tx.send(());
-
-            //     // Change the nn to the loaded one
-            //     let mut nn = nn.lock().unwrap();
-            //     *nn = new_nn;
-
-            //     println!("Loaded from nn.json");
-            //     println!("{:?}", nn);
-
-            //     // Restart the training
-            //     continue 'main;
-            // }
 
             clear_background(BACKGROUND_COLOR);
             {
