@@ -3,6 +3,20 @@ use super::{
     Color, Renderinfo, EPOCH_MAX, GRAY, LEARNING_RATE, LINE_COLOR, NN, TEXT_COLOR,
 };
 
+const LOW_COLOR: Color = Color {
+    r: 0.,
+    g: 1.,
+    b: 0.,
+    a: 1.,
+};
+
+const HIGH_COLOR: Color = Color {
+    r: 1.,
+    g: 0.,
+    b: 1.,
+    a: 1.,
+};
+
 pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &Renderinfo) {
     let nn = nn.clone();
 
@@ -18,19 +32,6 @@ pub fn draw_frame(nn: &NN, width: f32, height: f32, info: &Renderinfo) {
 }
 
 fn draw_nn(nn: &NN, width: f32, height: f32) {
-    let low_color = Color {
-        r: 1.,
-        g: 0.,
-        b: 1.,
-        a: 1.,
-    };
-    let high_color = Color {
-        r: 0.,
-        g: 1.,
-        b: 0.,
-        a: 1.,
-    };
-
     let x = 0.;
     let y = 0.;
 
@@ -62,7 +63,7 @@ fn draw_nn(nn: &NN, width: f32, height: f32) {
                         cx2,
                         cy2,
                         thick,
-                        color_lerp(low_color, high_color, value),
+                        color_lerp(LOW_COLOR, HIGH_COLOR, value),
                     );
                 }
             }
@@ -72,7 +73,7 @@ fn draw_nn(nn: &NN, width: f32, height: f32) {
                     cx1,
                     cy1,
                     neuron_radius,
-                    color_lerp(low_color, high_color, value),
+                    color_lerp(LOW_COLOR, HIGH_COLOR, value),
                 );
             } else {
                 draw_circle(cx1, cy1, neuron_radius, GRAY);
@@ -170,8 +171,9 @@ fn draw_data(info: &Renderinfo, mut nn: NN) {
 
     // Write the testing results at the bottom left
     for i in 0..info.t_input.rows {
-        nn.activations[0].data[0][0] = info.t_input.data[i][0];
-        nn.activations[0].data[0][1] = info.t_input.data[i][1];
+        for j in 0..nn.activations[0].rows {
+            nn.activations[0].data[j][0] = info.t_input.data[i][j];
+        }
 
         NN::forward(&mut nn);
         draw_text(

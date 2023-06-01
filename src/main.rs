@@ -47,12 +47,43 @@ impl Renderinfo {
 #[macroquad::main(window_conf)]
 async fn main() {
     'main: loop {
-        let nn = Arc::new(Mutex::new(NN::new(&[2, 4, 1])));
-        let mut g = NN::new(&[2, 4, 1]);
+        let nn_structure = &[1, 5,  1];
+
+        let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
+        let mut g = NN::new(nn_structure);
 
         // XOR Example
-        let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
-        let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
+        // let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
+        // let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
+
+        // Opposite example
+        let t_input = Mat::new(&[
+            &[1.0],
+            &[0.9],
+            &[0.8],
+            &[0.7],
+            &[0.6],
+            &[0.5],
+            &[0.4],
+            &[0.3],
+            &[0.2],
+            &[0.1],
+            &[0.0],
+        ]);
+
+        let t_output = Mat::new(&[
+            &[0.0],
+            &[0.1],
+            &[0.2],
+            &[0.3],
+            &[0.4],
+            &[0.5],
+            &[0.6],
+            &[0.7],
+            &[0.8],
+            &[0.9],
+            &[1.0],
+        ]);
 
         {
             let mut nn = nn.lock().unwrap();
@@ -124,8 +155,9 @@ async fn main() {
                 let output;
                 {
                     let mut nn = nn_clone.lock().unwrap();
-                    nn.activations[0].data[0][0] = t_input.data[i][0];
-                    nn.activations[0].data[0][1] = t_input.data[i][1];
+                    for j in 0..nn.activations[0].rows {
+                        nn.activations[0].data[j][0] = t_input.data[i][j];
+                    }
 
                     NN::forward(&mut nn);
                     output = nn.activations[nn.count - 1].data[0].clone();
