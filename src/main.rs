@@ -87,7 +87,7 @@ async fn main() {
         // TRAINING
         let nn_clone = Arc::clone(&nn);
         let info_clone = Arc::clone(&info);
-        let training_thread = thread::spawn(move || {
+        let _training_thread = thread::spawn(move || {
             for i in 0..=EPOCH_MAX {
                 {
                     let mut info = info_clone.lock().unwrap();
