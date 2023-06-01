@@ -1,4 +1,3 @@
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::{
     fs::File,
     io::Write,
@@ -86,8 +85,7 @@ async fn main() {
             &[1.0],
         ]);
 
-        let should_stop = Arc::new(AtomicBool::new(false));
-        let should_stop_clone = Arc::clone(&should_stop);
+        let (tx, rx) = std::sync::mpsc::channel();
 
         {
             let mut nn = nn.lock().unwrap();
@@ -124,9 +122,10 @@ async fn main() {
         let info_clone = Arc::clone(&info);
         let _training_thread = thread::spawn(move || {
             for i in 0..=EPOCH_MAX {
-                if should_stop_clone.load(Ordering::SeqCst) {
+                if let Ok(_) = rx.try_recv() {
                     break;
                 }
+
                 {
                     let mut info = info_clone.lock().unwrap();
                     info.epoch = i;
@@ -169,7 +168,7 @@ async fn main() {
             // Reset?
             if is_key_pressed(KeyCode::R) {
                 // Stop the training thread
-                should_stop.store(true, Ordering::SeqCst);
+                let _ = tx.send(());
                 continue 'main;
             }
 
