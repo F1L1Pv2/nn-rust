@@ -9,7 +9,7 @@ use std::{
 use framework::{sigmoidf, Mat, NN};
 use macroquad::prelude::*;
 use macroquad::rand::ChooseRandom;
-
+use image;
 
 mod draw;
 use draw::{draw_frame, Renderinfo};
@@ -24,7 +24,7 @@ const BACKGROUND_COLOR: Color = BLACK;
 const TEXT_COLOR: Color = WHITE;
 const LINE_COLOR: Color = RED;
 
-const BATCH_SIZE: usize = 1;
+const BATCH_SIZE: usize = 5 ;
 
 #[derive(PartialEq)]
 enum Signal {
@@ -44,16 +44,40 @@ struct Batch {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    // let mut argv = std::env::args();
+    let mut argv = std::env::args();
 
-    let nn_structure = &[2, 4, 4, 1];
+    let image_path = argv.nth(1).expect("No image path given");
+
+    let image = image::open(image_path).unwrap();
+
+    let image_data = image.to_rgba8();
+
+
+    let nn_structure = &[2, 28,28, 1];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
     let gradient = NN::new(nn_structure);
 
     'reset: loop {
         // XOR Example
-        let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
-        let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
+        // let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
+        // let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
+
+        // Image example
+        let mut t_input = Mat::new(&[&[0.]]);
+        let mut t_output = Mat::new(&[&[0.]]);
+
+        t_input.data = vec![];
+        t_output.data = vec![];
+        t_input.cols = 2;
+        t_output.cols = 1;
+
+        for (x, y, pixel) in image_data.enumerate_pixels() {
+            t_input.push_row(&[x as f32 / image_data.width() as f32, y as f32 / image_data.height() as f32]);
+            t_output.push_row(&[pixel[0] as f32 / 255.]);
+        }
+
+        t_input.rows = t_input.data.len();
+        t_output.rows = t_output.data.len();
 
         //batches
         let mut batches: Vec<Batch> = Vec::new();
@@ -242,6 +266,27 @@ async fn main() {
                     let _ = tx.send(Signal::Pause);
                     paused = true;
                     println!("Paused");
+                }
+            }
+
+            //Save image
+            if is_key_pressed(KeyCode::F) {
+                if paused {
+                    let nn = nn.lock().unwrap();
+                    let mut nn = nn.clone();
+                    let mut image = image::ImageBuffer::new(image_data.width(), image_data.height());
+
+                    for (x, y, pixel) in image.enumerate_pixels_mut() {
+                        let input = Mat::new(&[&[x as f32 / image_data.width() as f32, y as f32 / image_data.height() as f32]]);
+                        nn.activations[0] = input.clone();
+                        NN::forward(&mut nn);
+                        let output = &nn.activations[nn.activations.len() - 1];
+                        let color = (output.data[0][0] * 255.) as u8;
+                        *pixel = image::Rgba([color, color, color, 255]);
+                    }
+
+                    image.save("output.png").unwrap();
+                    println!("Saved image");
                 }
             }
 
