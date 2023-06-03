@@ -253,6 +253,16 @@ impl Mat {
         mat
     }
 
+    pub fn get_row(&self, row: usize) -> &[f32] {
+        &self.data[row]
+    }
+
+    pub fn push_row(&mut self, row: &[f32]) {
+        assert_eq!(row.len(), self.cols);
+        self.data.push(row.to_vec());
+        self.rows += 1;
+    }
+
     // do a jest dodawane b
     pub fn sum(a: &mut Mat, b: &Mat) {
         assert_eq!(a.rows, b.rows);
