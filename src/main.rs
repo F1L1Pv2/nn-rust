@@ -22,6 +22,8 @@ const BACKGROUND_COLOR: Color = BLACK;
 const TEXT_COLOR: Color = WHITE;
 const LINE_COLOR: Color = RED;
 
+const BATCH_SIZE: usize = 1;
+
 #[derive(PartialEq)]
 enum Signal {
     Pause,
@@ -29,8 +31,19 @@ enum Signal {
     Stop,
 }
 
+//create batch struct
+
+//make it printable
+#[derive(Debug, Clone)]
+struct Batch {
+    input: Mat,
+    output: Mat,
+}
+
 #[macroquad::main(window_conf)]
 async fn main() {
+    // let mut argv = std::env::args();
+
     let nn_structure = &[2, 4, 4, 1];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
     let gradient = NN::new(nn_structure);
@@ -39,6 +52,49 @@ async fn main() {
         // XOR Example
         let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
         let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
+
+        //batches
+        let mut batches: Vec<Batch> = Vec::new();
+
+        {
+            let mut t_input = t_input.clone();
+            let mut t_output = t_output.clone();
+            let batchcount = t_input.rows / BATCH_SIZE;
+
+            for i in 0..batchcount {
+                let mut batch = Batch {
+                    input: Mat::new(&[&[0.]]),
+                    output: Mat::new(&[&[0.]]),
+                };
+
+                //set batch input and output to the right size
+                batch.input.cols = t_input.cols;
+                batch.input.rows = 0;
+                batch.output.cols = t_output.cols;
+                batch.output.rows = 0;
+                batch.input.data = vec![];
+                batch.output.data = vec![];
+
+                for j in 0..BATCH_SIZE {
+                    batch.input.push_row(t_input.get_row(i * BATCH_SIZE + j));
+                    batch.output.data.push(t_output.get_row(i * BATCH_SIZE + j).to_vec());
+                }
+
+                //fix rows and cols for batch
+                batch.input.rows = batch.input.data.len();
+                batch.output.rows = batch.output.data.len();
+                batch.input.cols = batch.input.data[0].len();
+                batch.output.cols = batch.output.data[0].len();
+
+
+                batches.push(batch);
+            }
+
+            //shuffle batches without shuffle
+        }
+        println!("batches: {:?}", batches);
+
+        // return;
 
         // Opposite example
         // let t_input = Mat::new(&[
@@ -132,25 +188,36 @@ async fn main() {
                     }
                 }
 
-                {
-                    let mut info = info_clone.lock().unwrap();
-                    info.epoch = i;
-                    info.t_input = t_input.clone();
-                    info.t_output = t_output.clone();
-                    info.training_time =
-                        (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32 / 1000.0;
-                }
+                for j in 0..batches.len() {
+                    // println!("batch: {:?}", batches[j]);
+                
+                    {
+                        let mut info = info_clone.lock().unwrap();
+                        info.epoch = i;
+                        info.t_input = t_input.clone();
+                        info.t_output = t_output.clone();
+                        info.training_time =
+                            (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32 / 1000.0;
+                    }
 
-                {
-                    let mut nn = nn_clone.lock().unwrap();
-                    NN::backprop(&mut nn, &mut gradient, &t_input, &t_output);
-                    NN::learn(&mut nn, &gradient, LEARNING_RATE);
+                    {
+                        let mut nn = nn_clone.lock().unwrap();
+                        // NN::backprop(&mut nn, &mut gradient, &t_input, &t_output);
+                        NN::backprop(
+                            &mut nn,
+                            &mut gradient,
+                            &batches[j].input,
+                            &batches[j].output,
+                        );
+                        NN::learn(&mut nn, &gradient, LEARNING_RATE);
+                    }
+
                 }
+            //     println!(
+            //         "Training time: {}",
+            //         info_clone.lock().unwrap().training_time
+            //     );
             }
-            println!(
-                "Training time: {}",
-                info_clone.lock().unwrap().training_time
-            );
         });
 
         loop {
