@@ -8,6 +8,8 @@ use std::{
 
 use framework::{sigmoidf, Mat, NN};
 use macroquad::prelude::*;
+use macroquad::rand::ChooseRandom;
+
 
 mod draw;
 use draw::{draw_frame, Renderinfo};
@@ -56,43 +58,42 @@ async fn main() {
         //batches
         let mut batches: Vec<Batch> = Vec::new();
 
-        {
-            let mut t_input = t_input.clone();
-            let mut t_output = t_output.clone();
-            let batchcount = t_input.rows / BATCH_SIZE;
+        let batchcount = t_input.rows / BATCH_SIZE;
 
-            for i in 0..batchcount {
-                let mut batch = Batch {
-                    input: Mat::new(&[&[0.]]),
-                    output: Mat::new(&[&[0.]]),
-                };
+        for i in 0..batchcount {
+            let mut batch = Batch {
+                input: Mat::new(&[&[0.]]),
+                output: Mat::new(&[&[0.]]),
+            };
 
-                //set batch input and output to the right size
-                batch.input.cols = t_input.cols;
-                batch.input.rows = 0;
-                batch.output.cols = t_output.cols;
-                batch.output.rows = 0;
-                batch.input.data = vec![];
-                batch.output.data = vec![];
+            //set batch input and output to the right size
+            batch.input.cols = t_input.cols;
+            batch.output.cols = t_output.cols;
+            batch.input.data = vec![];
+            batch.output.data = vec![];
 
-                for j in 0..BATCH_SIZE {
-                    batch.input.push_row(t_input.get_row(i * BATCH_SIZE + j));
-                    batch.output.data.push(t_output.get_row(i * BATCH_SIZE + j).to_vec());
-                }
-
-                //fix rows and cols for batch
-                batch.input.rows = batch.input.data.len();
-                batch.output.rows = batch.output.data.len();
-                batch.input.cols = batch.input.data[0].len();
-                batch.output.cols = batch.output.data[0].len();
-
-
-                batches.push(batch);
+            for j in 0..BATCH_SIZE {
+                batch.input.push_row(t_input.get_row(i * BATCH_SIZE + j));
+                batch
+                    .output
+                    .data
+                    .push(t_output.get_row(i * BATCH_SIZE + j).to_vec());
             }
+
+            //fix rows and cols for batch
+            batch.input.rows = batch.input.data.len();
+            batch.output.rows = batch.output.data.len();
+            batch.input.cols = batch.input.data[0].len();
+            batch.output.cols = batch.output.data[0].len();
+
+            batches.push(batch);
 
             //shuffle batches without shuffle
         }
-        println!("batches: {:?}", batches);
+
+        batches.shuffle();
+
+        // println!("batches: {:?}", batches);
 
         // return;
 
@@ -188,9 +189,8 @@ async fn main() {
                     }
                 }
 
-                for j in 0..batches.len() {
-                    // println!("batch: {:?}", batches[j]);
-                
+                for batch in batches.iter() {
+
                     {
                         let mut info = info_clone.lock().unwrap();
                         info.epoch = i;
@@ -202,21 +202,16 @@ async fn main() {
 
                     {
                         let mut nn = nn_clone.lock().unwrap();
-                        // NN::backprop(&mut nn, &mut gradient, &t_input, &t_output);
                         NN::backprop(
                             &mut nn,
                             &mut gradient,
-                            &batches[j].input,
-                            &batches[j].output,
+                            &batch.input,
+                            &batch.output,
                         );
                         NN::learn(&mut nn, &gradient, LEARNING_RATE);
                     }
-
                 }
-            //     println!(
-            //         "Training time: {}",
-            //         info_clone.lock().unwrap().training_time
-            //     );
+
             }
         });
 
