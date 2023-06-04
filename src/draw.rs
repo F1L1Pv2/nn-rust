@@ -2,7 +2,7 @@ use macroquad::window::screen_width;
 
 use super::{
     color_lerp, draw_circle, draw_line, draw_rectangle, draw_text, f32, screen_height, sigmoidf,
-    Color, Mat, EPOCH_MAX, GRAY, LEARNING_RATE, LINE_COLOR, NN, TEXT_COLOR,
+    Color, Mat, EPOCH_MAX, GRAY, LINE_COLOR, NN, TEXT_COLOR,
 };
 
 const LOW_COLOR: Color = Color {
@@ -50,7 +50,13 @@ pub fn draw_frame(nn: &NN, info: &mut Renderinfo) {
     draw_text("r - reset", width - 100., 20., 20., TEXT_COLOR);
     draw_text("p - pause", width - 100., 40., 20., TEXT_COLOR);
     draw_text("q - quit", width - 100., 60., 20., TEXT_COLOR);
-    draw_text("f - save image (while pausing)", width - 120., 80., 20., TEXT_COLOR);
+    draw_text(
+        "f - save image (while pausing)",
+        width - 120.,
+        80.,
+        20.,
+        TEXT_COLOR,
+    );
     draw_text("(while pausing)", width - 120., 100., 20., TEXT_COLOR);
 }
 
@@ -198,7 +204,7 @@ fn draw_data(info: &Renderinfo, mut nn: NN) {
             )
             .as_str(),
             0.,
-            screen_height() - 10. - i as f32 * 20.,
+            screen_height() - 20. - i as f32 * 10.,
             20.,
             TEXT_COLOR,
         );

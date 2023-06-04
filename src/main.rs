@@ -23,10 +23,14 @@ const BACKGROUND_COLOR: Color = BLACK;
 const TEXT_COLOR: Color = WHITE;
 const LINE_COLOR: Color = RED;
 
-
 const OUT_IMG_WIDTH: u32 = 400;
 const OUT_IMG_HEIGHT: u32 = 400;
-const BATCH_SIZE: usize = 5 ;
+const BATCH_SIZE: usize = 5;
+
+// enum Mode {
+//     Image,
+//     Normal,
+// }
 
 #[derive(PartialEq)]
 enum Signal {
@@ -48,6 +52,11 @@ struct Batch {
 async fn main() {
     let mut argv = std::env::args();
 
+    // let mode = match argv.nth(1) {
+    //     Some(_) => Mode::Image,
+    //     None => Mode::Normal,
+    // };
+
     let image_path = argv.nth(1).expect("No image path given");
 
     let image = image::open(image_path).unwrap();
@@ -59,9 +68,7 @@ async fn main() {
     let gradient = NN::new(nn_structure);
 
     'reset: loop {
-        let mut learning_rate = LEARNING_RATE;
-
-        //set random seed
+        // Set random seed
         rand::srand(chrono::Utc::now().timestamp_millis() as u64);
 
         // XOR Example
@@ -88,7 +95,7 @@ async fn main() {
         t_input.rows = t_input.data.len();
         t_output.rows = t_output.data.len();
 
-        //batches
+        // Batches
         let mut batches: Vec<Batch> = Vec::new();
 
         let batchcount = t_input.rows / BATCH_SIZE;
@@ -185,7 +192,7 @@ async fn main() {
                 training_time: 0.0,
                 cost_history: vec![cost],
                 paused,
-                learning_rate,
+                learning_rate: LEARNING_RATE,
             }));
         }
 
@@ -203,7 +210,7 @@ async fn main() {
         let _training_thread = thread::spawn(move || {
             'training: for i in 0..=EPOCH_MAX {
                 //learning rate decay
-                learning_rate = lerp(LEARNING_RATE, 0.0001, i as f32 / EPOCH_MAX as f32);
+                let lr = lerp(LEARNING_RATE, 0.0001, i as f32 / EPOCH_MAX as f32);
 
                 if let Ok(signal) = rx.try_recv() {
                     match signal {
@@ -238,13 +245,13 @@ async fn main() {
                         info.t_output = t_output.clone();
                         info.training_time =
                             (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32 / 1000.0;
-                        info.learning_rate = learning_rate;
+                        info.learning_rate = lr;
                     }
 
                     {
                         let mut nn = nn_clone.lock().unwrap();
                         NN::backprop(&mut nn, &mut gradient, &batch.input, &batch.output);
-                        NN::learn(&mut nn, &gradient, learning_rate);
+                        NN::learn(&mut nn, &gradient, lr);
                     }
                 }
             }
@@ -286,14 +293,17 @@ async fn main() {
                 let mut nn = nn.clone();
                 let mut image = image::ImageBuffer::new(OUT_IMG_WIDTH, OUT_IMG_HEIGHT);
 
-                    for (x, y, pixel) in image.enumerate_pixels_mut() {
-                        let input = Mat::new(&[&[x as f32 / OUT_IMG_WIDTH as f32, y as f32 / OUT_IMG_HEIGHT as f32]]);
-                        nn.activations[0] = input.clone();
-                        NN::forward(&mut nn);
-                        let output = &nn.activations[nn.activations.len() - 1];
-                        let color = (output.data[0][0] * 255.) as u8;
-                        *pixel = image::Rgba([color, color, color, 255]);
-                    }
+                for (x, y, pixel) in image.enumerate_pixels_mut() {
+                    let input = Mat::new(&[&[
+                        x as f32 / OUT_IMG_WIDTH as f32,
+                        y as f32 / OUT_IMG_HEIGHT as f32,
+                    ]]);
+                    nn.activations[0] = input.clone();
+                    NN::forward(&mut nn);
+                    let output = &nn.activations[nn.activations.len() - 1];
+                    let color = (output.data[0][0] * 255.) as u8;
+                    *pixel = image::Rgba([color, color, color, 255]);
+                }
 
                 image.save("output.png").unwrap();
                 println!("Saved image");
