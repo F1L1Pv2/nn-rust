@@ -28,7 +28,6 @@ pub struct Renderinfo {
     pub training_time: f32,
     pub cost_history: Vec<f32>,
     pub paused: bool,
-    pub learning_rate: f32,
 }
 
 pub fn draw_frame(nn: &NN, info: &mut Renderinfo) {
@@ -50,8 +49,6 @@ pub fn draw_frame(nn: &NN, info: &mut Renderinfo) {
     draw_text("r - reset", width - 100., 20., 20., TEXT_COLOR);
     draw_text("p - pause", width - 100., 40., 20., TEXT_COLOR);
     draw_text("q - quit", width - 100., 60., 20., TEXT_COLOR);
-    draw_text("f - save image (while pausing)", width - 120., 80., 20., TEXT_COLOR);
-    draw_text("(while pausing)", width - 120., 100., 20., TEXT_COLOR);
 }
 
 fn draw_nn(nn: &NN, width: f32, height: f32) {
@@ -165,7 +162,7 @@ fn draw_data(info: &Renderinfo, mut nn: NN) {
     draw_text(
         format!(
             "Epoch: {}/{} | Learning Rate: {:.4}",
-            info.epoch, EPOCH_MAX, info.learning_rate
+            info.epoch, EPOCH_MAX, LEARNING_RATE
         )
         .as_str(),
         0.,

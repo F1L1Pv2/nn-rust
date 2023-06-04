@@ -53,19 +53,11 @@ async fn main() {
     let image_data = image.to_rgba8();
 
 
-    let nn_structure = &[2, 10,10,9, 1];
+    let nn_structure = &[2, 28,28, 1];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
     let gradient = NN::new(nn_structure);
 
     'reset: loop {
-
-
-        let mut learning_rate = LEARNING_RATE;
-
-
-        //set random seed
-        rand::srand(chrono::Utc::now().timestamp_millis() as u64);
-
         // XOR Example
         // let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
         // let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
@@ -129,10 +121,6 @@ async fn main() {
 
         // return;
 
-        // println!("batches: {:?}", batches);
-
-        // return;
-
         // Opposite example
         // let t_input = Mat::new(&[
         //     &[1.0],
@@ -184,7 +172,6 @@ async fn main() {
                 training_time: 0.0,
                 cost_history: vec![cost],
                 paused,
-                learning_rate,
             }));
         }
 
@@ -201,11 +188,6 @@ async fn main() {
 
         let _training_thread = thread::spawn(move || {
             'training: for i in 0..=EPOCH_MAX {
-
-                //learning rate decay
-                learning_rate = lerp(LEARNING_RATE, 0.0001, i as f32 / EPOCH_MAX as f32);
-
-
                 if let Ok(signal) = rx.try_recv() {
                     match signal {
                         Signal::Pause => {
@@ -240,7 +222,6 @@ async fn main() {
                         info.t_output = t_output.clone();
                         info.training_time =
                             (chrono::Utc::now().timestamp_millis() - time_elapsed) as f32 / 1000.0;
-                        info.learning_rate = learning_rate;
                     }
 
                     {
@@ -251,7 +232,7 @@ async fn main() {
                             &batch.input,
                             &batch.output,
                         );
-                        NN::learn(&mut nn, &gradient, learning_rate);
+                        NN::learn(&mut nn, &gradient, LEARNING_RATE);
                     }
                 }
 
