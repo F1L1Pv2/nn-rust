@@ -23,7 +23,10 @@ const BACKGROUND_COLOR: Color = BLACK;
 const TEXT_COLOR: Color = WHITE;
 const LINE_COLOR: Color = RED;
 
-const BATCH_SIZE: usize = 5;
+
+const OUT_IMG_WIDTH: u32 = 400;
+const OUT_IMG_HEIGHT: u32 = 400;
+const BATCH_SIZE: usize = 5 ;
 
 #[derive(PartialEq)]
 enum Signal {
@@ -281,19 +284,16 @@ async fn main() {
             if is_key_pressed(KeyCode::F) && paused {
                 let nn = nn.lock().unwrap();
                 let mut nn = nn.clone();
-                let mut image = image::ImageBuffer::new(image_data.width(), image_data.height());
+                let mut image = image::ImageBuffer::new(OUT_IMG_WIDTH, OUT_IMG_HEIGHT);
 
-                for (x, y, pixel) in image.enumerate_pixels_mut() {
-                    let input = Mat::new(&[&[
-                        x as f32 / image_data.width() as f32,
-                        y as f32 / image_data.height() as f32,
-                    ]]);
-                    nn.activations[0] = input.clone();
-                    NN::forward(&mut nn);
-                    let output = &nn.activations[nn.activations.len() - 1];
-                    let color = (output.data[0][0] * 255.) as u8;
-                    *pixel = image::Rgba([color, color, color, 255]);
-                }
+                    for (x, y, pixel) in image.enumerate_pixels_mut() {
+                        let input = Mat::new(&[&[x as f32 / OUT_IMG_WIDTH as f32, y as f32 / OUT_IMG_HEIGHT as f32]]);
+                        nn.activations[0] = input.clone();
+                        NN::forward(&mut nn);
+                        let output = &nn.activations[nn.activations.len() - 1];
+                        let color = (output.data[0][0] * 255.) as u8;
+                        *pixel = image::Rgba([color, color, color, 255]);
+                    }
 
                 image.save("output.png").unwrap();
                 println!("Saved image");
