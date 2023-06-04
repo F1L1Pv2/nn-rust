@@ -9,7 +9,6 @@ use std::{
 use framework::{sigmoidf, Mat, NN};
 use macroquad::prelude::*;
 use macroquad::rand::ChooseRandom;
-use image;
 
 mod draw;
 use draw::{draw_frame, Renderinfo};
@@ -24,7 +23,7 @@ const BACKGROUND_COLOR: Color = BLACK;
 const TEXT_COLOR: Color = WHITE;
 const LINE_COLOR: Color = RED;
 
-const BATCH_SIZE: usize = 5 ;
+const BATCH_SIZE: usize = 5;
 
 #[derive(PartialEq)]
 enum Signal {
@@ -52,16 +51,12 @@ async fn main() {
 
     let image_data = image.to_rgba8();
 
-
-    let nn_structure = &[2, 10,10,9, 1];
+    let nn_structure = &[2, 10, 10, 9, 1];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
     let gradient = NN::new(nn_structure);
 
     'reset: loop {
-
-
         let mut learning_rate = LEARNING_RATE;
-
 
         //set random seed
         rand::srand(chrono::Utc::now().timestamp_millis() as u64);
@@ -80,7 +75,10 @@ async fn main() {
         t_output.cols = 1;
 
         for (x, y, pixel) in image_data.enumerate_pixels() {
-            t_input.push_row(&[x as f32 / image_data.width() as f32, y as f32 / image_data.height() as f32]);
+            t_input.push_row(&[
+                x as f32 / image_data.width() as f32,
+                y as f32 / image_data.height() as f32,
+            ]);
             t_output.push_row(&[pixel[0] as f32 / 255.]);
         }
 
@@ -201,10 +199,8 @@ async fn main() {
 
         let _training_thread = thread::spawn(move || {
             'training: for i in 0..=EPOCH_MAX {
-
                 //learning rate decay
                 learning_rate = lerp(LEARNING_RATE, 0.0001, i as f32 / EPOCH_MAX as f32);
-
 
                 if let Ok(signal) = rx.try_recv() {
                     match signal {
@@ -232,7 +228,6 @@ async fn main() {
                 }
 
                 for batch in batches.iter() {
-
                     {
                         let mut info = info_clone.lock().unwrap();
                         info.epoch = i;
@@ -245,16 +240,10 @@ async fn main() {
 
                     {
                         let mut nn = nn_clone.lock().unwrap();
-                        NN::backprop(
-                            &mut nn,
-                            &mut gradient,
-                            &batch.input,
-                            &batch.output,
-                        );
+                        NN::backprop(&mut nn, &mut gradient, &batch.input, &batch.output);
                         NN::learn(&mut nn, &gradient, learning_rate);
                     }
                 }
-
             }
         });
 
@@ -289,24 +278,25 @@ async fn main() {
             }
 
             //Save image
-            if is_key_pressed(KeyCode::F) {
-                if paused {
-                    let nn = nn.lock().unwrap();
-                    let mut nn = nn.clone();
-                    let mut image = image::ImageBuffer::new(image_data.width(), image_data.height());
+            if is_key_pressed(KeyCode::F) && paused {
+                let nn = nn.lock().unwrap();
+                let mut nn = nn.clone();
+                let mut image = image::ImageBuffer::new(image_data.width(), image_data.height());
 
-                    for (x, y, pixel) in image.enumerate_pixels_mut() {
-                        let input = Mat::new(&[&[x as f32 / image_data.width() as f32, y as f32 / image_data.height() as f32]]);
-                        nn.activations[0] = input.clone();
-                        NN::forward(&mut nn);
-                        let output = &nn.activations[nn.activations.len() - 1];
-                        let color = (output.data[0][0] * 255.) as u8;
-                        *pixel = image::Rgba([color, color, color, 255]);
-                    }
-
-                    image.save("output.png").unwrap();
-                    println!("Saved image");
+                for (x, y, pixel) in image.enumerate_pixels_mut() {
+                    let input = Mat::new(&[&[
+                        x as f32 / image_data.width() as f32,
+                        y as f32 / image_data.height() as f32,
+                    ]]);
+                    nn.activations[0] = input.clone();
+                    NN::forward(&mut nn);
+                    let output = &nn.activations[nn.activations.len() - 1];
+                    let color = (output.data[0][0] * 255.) as u8;
+                    *pixel = image::Rgba([color, color, color, 255]);
                 }
+
+                image.save("output.png").unwrap();
+                println!("Saved image");
             }
 
             clear_background(BACKGROUND_COLOR);
