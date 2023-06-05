@@ -11,21 +11,16 @@ use macroquad::prelude::*;
 use macroquad::rand::ChooseRandom;
 
 mod draw;
-use draw::{draw_frame, Renderinfo};
+use draw::{draw_frame, Renderinfo, window_conf, BACKGROUND_COLOR};
 
 const EPOCH_MAX: i32 = 100_000;
 const LEARNING_RATE: f32 = 1.;
 
-const WINDOW_WIDTH: i32 = 800;
-const WINDOW_HEIGHT: i32 = 600;
 
-const BACKGROUND_COLOR: Color = BLACK;
-const TEXT_COLOR: Color = WHITE;
-const LINE_COLOR: Color = RED;
 
 const OUT_IMG_WIDTH: u32 = 400;
 const OUT_IMG_HEIGHT: u32 = 400;
-const BATCH_SIZE: usize = 5;
+const BATCH_SIZE: usize = 28;
 
 // enum Mode {
 //     Image,
@@ -134,12 +129,6 @@ async fn main() {
         batches.shuffle();
 
         // println!("batches: {:?}", batches);
-
-        // return;
-
-        // println!("batches: {:?}", batches);
-
-        // return;
 
         // Opposite example
         // let t_input = Mat::new(&[
@@ -329,15 +318,5 @@ fn color_lerp(a: Color, b: Color, t: f32) -> Color {
         g: lerp(a.g, b.g, t),
         b: lerp(a.b, b.b, t),
         a: lerp(a.a, b.a, t),
-    }
-}
-
-fn window_conf() -> Conf {
-    Conf {
-        window_title: "nn-rust".to_owned(),
-        window_width: WINDOW_WIDTH,
-        window_height: WINDOW_HEIGHT,
-        window_resizable: true,
-        ..Default::default()
     }
 }

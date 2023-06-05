@@ -1,9 +1,17 @@
 use macroquad::window::screen_width;
+use macroquad::prelude::*;
 
 use super::{
     color_lerp, draw_circle, draw_line, draw_rectangle, draw_text, f32, screen_height, sigmoidf,
-    Color, Mat, EPOCH_MAX, GRAY, LINE_COLOR, NN, TEXT_COLOR,
+    Color, Mat, EPOCH_MAX, GRAY, NN, 
 };
+
+pub const WINDOW_WIDTH: i32 = 800;
+pub const WINDOW_HEIGHT: i32 = 600;
+
+pub const BACKGROUND_COLOR: Color = BLACK;
+pub const TEXT_COLOR: Color = WHITE;
+pub const LINE_COLOR: Color = RED;
 
 const LOW_COLOR: Color = Color {
     r: 0.,
@@ -208,5 +216,15 @@ fn draw_data(info: &Renderinfo, mut nn: NN) {
             20.,
             TEXT_COLOR,
         );
+    }
+}
+
+pub fn window_conf() -> Conf {
+    Conf {
+        window_title: "nn-rust".to_owned(),
+        window_width: WINDOW_WIDTH,
+        window_height: WINDOW_HEIGHT,
+        window_resizable: true,
+        ..Default::default()
     }
 }
