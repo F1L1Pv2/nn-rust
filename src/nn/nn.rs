@@ -8,14 +8,12 @@ use std::{
 
 use framework::{sigmoidf, Mat, NN};
 use macroquad::prelude::*;
+use macroquad::rand::ChooseRandom;
 
-mod draw;
-use draw::{draw_frame, lerp, window_conf, Renderinfo, BACKGROUND_COLOR};
+use crate::draw;
+use crate::draw::{color_lerp, draw_frame, lerp, window_conf, Renderinfo, BACKGROUND_COLOR};
 
-// mod img2nn;
-// mod nn;
-
-const EPOCH_MAX: i32 = 10000;
+const EPOCH_MAX: i32 = 1000;
 const LEARNING_RATE: f32 = 1.;
 
 const OUT_IMG_WIDTH: u32 = 400;
@@ -33,22 +31,16 @@ enum Signal {
     Resume,
     Stop,
 }
+
+#[derive(Debug, Clone)]
+struct Batch {
+    input: Mat,
+    output: Mat,
+}
+
 #[macroquad::main(window_conf)]
 async fn main() {
-    let mut argv = std::env::args();
-
-    // let mode = match argv.nth(1) {
-    //     Some(_) => Mode::Image,
-    //     None => Mode::Normal,
-    // };
-
-    let image_path = argv.nth(1).expect("No image path given");
-
-    let image = image::open(image_path).unwrap();
-
-    let image_data = image.to_rgba8();
-
-    let nn_structure = &[2, 10, 10, 9, 1];
+    let nn_structure = &[2, 4, 4, 1];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
     let gradient = NN::new(nn_structure);
 
@@ -57,33 +49,46 @@ async fn main() {
         rand::srand(chrono::Utc::now().timestamp_millis() as u64);
 
         // XOR Example
-        // let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
-        // let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
-
-        // Image example
-        let mut t_input = Mat::new(&[&[0.]]);
-        let mut t_output = Mat::new(&[&[0.]]);
-
-        t_input.data = vec![];
-        t_output.data = vec![];
-        t_input.cols = 2;
-        t_output.cols = 1;
-
-        for (x, y, pixel) in image_data.enumerate_pixels() {
-            t_input.push_row(&[
-                x as f32 / image_data.width() as f32,
-                y as f32 / image_data.height() as f32,
-            ]);
-            t_output.push_row(&[pixel[0] as f32 / 255.]);
-        }
-
-        t_input.rows = t_input.data.len();
-        t_output.rows = t_output.data.len();
+        let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
+        let t_output = Mat::new(&[&[0.0], &[1.0], &[1.0], &[0.0]]);
 
         // Batches
-        let batches = NN::gen_batches(&t_input, &t_output, BATCH_SIZE);
+        let mut batches: Vec<Batch> = Vec::new();
 
-        // println!("batches: {:?}", batches);
+        let batchcount = t_input.rows / BATCH_SIZE;
+
+        for i in 0..batchcount {
+            let mut batch = Batch {
+                input: Mat::new(&[&[0.]]),
+                output: Mat::new(&[&[0.]]),
+            };
+
+            // Set batch input and output to the right size
+            batch.input.cols = t_input.cols;
+            batch.output.cols = t_output.cols;
+            batch.input.data = vec![];
+            batch.output.data = vec![];
+
+            for j in 0..BATCH_SIZE {
+                batch.input.push_row(t_input.get_row(i * BATCH_SIZE + j));
+                batch
+                    .output
+                    .data
+                    .push(t_output.get_row(i * BATCH_SIZE + j).to_vec());
+            }
+
+            // Fix rows and cols for batch
+            batch.input.rows = batch.input.data.len();
+            batch.output.rows = batch.output.data.len();
+            batch.input.cols = batch.input.data[0].len();
+            batch.output.cols = batch.output.data[0].len();
+
+            batches.push(batch);
+        }
+
+        batches.shuffle();
+
+        println!("Batches: {:?}", batches);
 
         let mut gradient = gradient.clone();
 
@@ -124,7 +129,7 @@ async fn main() {
 
         let _training_thread = thread::spawn(move || {
             'training: for i in 0..=EPOCH_MAX {
-                //learning rate decay
+                // Learning rate decay
                 let lr = lerp(LEARNING_RATE, 0.0001, i as f32 / EPOCH_MAX as f32);
 
                 if let Ok(signal) = rx.try_recv() {
@@ -200,28 +205,6 @@ async fn main() {
                     paused = true;
                     println!("Paused");
                 }
-            }
-
-            //Save image
-            if is_key_pressed(KeyCode::F) && paused {
-                let nn = nn.lock().unwrap();
-                let mut nn = nn.clone();
-                let mut image = image::ImageBuffer::new(OUT_IMG_WIDTH, OUT_IMG_HEIGHT);
-
-                for (x, y, pixel) in image.enumerate_pixels_mut() {
-                    let input = Mat::new(&[&[
-                        x as f32 / OUT_IMG_WIDTH as f32,
-                        y as f32 / OUT_IMG_HEIGHT as f32,
-                    ]]);
-                    nn.activations[0] = input.clone();
-                    NN::forward(&mut nn);
-                    let output = &nn.activations[nn.activations.len() - 1];
-                    let color = (output.data[0][0] * 255.) as u8;
-                    *pixel = image::Rgba([color, color, color, 255]);
-                }
-
-                image.save("output.png").unwrap();
-                println!("Saved image");
             }
 
             clear_background(BACKGROUND_COLOR);

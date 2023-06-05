@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::{seq::SliceRandom, Rng};
 
 #[macro_export]
 macro_rules! nn_input {
@@ -28,27 +28,70 @@ pub struct NN {
     pub activations: Vec<Mat>,
 }
 
+#[derive(Debug, Clone)]
+pub struct Batch {
+    pub input: Mat,
+    pub output: Mat,
+}
+
 impl NN {
     pub fn new(arch: &[usize]) -> NN {
         Self::alloc(arch)
     }
 
     pub fn forward(nn: &mut NN) {
-    for i in 0..nn.count - 1 {
-        let mut temp = Mat::new(&[&[0.0]]);
-        temp.rows = nn.activations[i + 1].rows;
-        temp.cols = nn.activations[i + 1].cols;
-        temp.data = vec![vec![0.0; temp.cols]; temp.rows];
-        Mat::dot(
-            &mut temp,
-            &nn.activations[i],
-            &nn.weights[i],
-        );
-        nn.activations[i + 1] = temp;
-        Mat::sum(&mut nn.activations[i + 1], &nn.biases[i]);
-        Mat::sig(&mut nn.activations[i + 1]);
+        for i in 0..nn.count - 1 {
+            let mut temp = Mat::new(&[&[0.0]]);
+            temp.rows = nn.activations[i + 1].rows;
+            temp.cols = nn.activations[i + 1].cols;
+            temp.data = vec![vec![0.0; temp.cols]; temp.rows];
+            Mat::dot(&mut temp, &nn.activations[i], &nn.weights[i]);
+            nn.activations[i + 1] = temp;
+            Mat::sum(&mut nn.activations[i + 1], &nn.biases[i]);
+            Mat::sig(&mut nn.activations[i + 1]);
+        }
     }
-}
+
+    pub fn gen_batches(t_input: &Mat, t_output: &Mat, batch_size: usize) -> Vec<Batch> {
+        let mut batches: Vec<Batch> = Vec::new();
+
+        let batchcount = t_input.rows / batch_size;
+
+        for i in 0..batchcount {
+            let mut batch = Batch {
+                input: Mat::new(&[&[0.]]),
+                output: Mat::new(&[&[0.]]),
+            };
+
+            //set batch input and output to the right size
+            batch.input.cols = t_input.cols;
+            batch.output.cols = t_output.cols;
+            batch.input.data = vec![];
+            batch.output.data = vec![];
+
+            for j in 0..batch_size {
+                batch.input.push_row(t_input.get_row(i * batch_size + j));
+                batch
+                    .output
+                    .data
+                    .push(t_output.get_row(i * batch_size + j).to_vec());
+            }
+
+            //fix rows and cols for batch
+            batch.input.rows = batch.input.data.len();
+            batch.output.rows = batch.output.data.len();
+            batch.input.cols = batch.input.data[0].len();
+            batch.output.cols = batch.output.data[0].len();
+
+            batches.push(batch);
+
+            //shuffle batches without shuffle
+        }
+
+        batches.shuffle(&mut rand::thread_rng());
+
+        batches
+    }
 
     pub fn cost(nn: &mut NN, t_input: &Mat, t_output: &Mat) -> f32 {
         //let mut nn = nn.clone();

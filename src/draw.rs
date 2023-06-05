@@ -1,9 +1,9 @@
-use macroquad::window::screen_width;
 use macroquad::prelude::*;
+use macroquad::window::screen_width;
 
 use super::{
-    color_lerp, draw_circle, draw_line, draw_rectangle, draw_text, f32, screen_height, sigmoidf,
-    Color, Mat, EPOCH_MAX, GRAY, NN, 
+    draw_circle, draw_line, draw_rectangle, draw_text, f32, screen_height, sigmoidf, Color, Mat,
+    EPOCH_MAX, GRAY, NN,
 };
 
 pub const WINDOW_WIDTH: i32 = 800;
@@ -226,5 +226,18 @@ pub fn window_conf() -> Conf {
         window_height: WINDOW_HEIGHT,
         window_resizable: true,
         ..Default::default()
+    }
+}
+
+pub fn lerp(a: f32, b: f32, t: f32) -> f32 {
+    a + (b - a) * t
+}
+
+pub fn color_lerp(a: Color, b: Color, t: f32) -> Color {
+    Color {
+        r: lerp(a.r, b.r, t),
+        g: lerp(a.g, b.g, t),
+        b: lerp(a.b, b.b, t),
+        a: lerp(a.a, b.a, t),
     }
 }
