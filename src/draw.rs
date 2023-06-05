@@ -55,6 +55,9 @@ pub fn draw_frame(nn: &mut NN, info: &mut Renderinfo) {
     draw_graph(width, height, info);
     draw_data(info, nn);
 
+
+    draw_preview_image(28, 28, nn);
+
     draw_text("r - reset", width - 100., 20., 20., TEXT_COLOR);
     draw_text("p - pause", width - 100., 40., 20., TEXT_COLOR);
     draw_text("q - quit", width - 100., 60., 20., TEXT_COLOR);
@@ -172,6 +175,32 @@ fn draw_graph(width: f32, height: f32, info: &Renderinfo) {
         last_x = x;
         last_y = y;
     }
+}
+
+fn draw_preview_image(width: usize, height: usize, nn: &mut NN){
+
+    let mut image = Image::gen_image_color(width as u16, height as u16, BLACK);
+    
+    for i in 0..height {
+        for j in 0..width {
+            nn.activations[0].data[0][0] = j as f32 / width as f32;
+            nn.activations[0].data[0][1] = i as f32 / height as f32;
+            NN::forward(nn);
+            let value = nn.activations[nn.count - 1].data[0][0];
+            image.set_pixel(j as u32, i as u32, Color{r: value, g: value, b: value, a: 1.});
+        }
+    }
+
+
+
+    let texture = Texture2D::from_image(&image);
+
+    draw_texture_ex(texture, 0., 0., WHITE, DrawTextureParams {
+        dest_size: Some(Vec2::new(width as f32*10. as f32, height as f32 *10. as f32)),
+        ..Default::default()
+    });
+
+
 }
 
 fn draw_data(info: &Renderinfo, nn: &mut NN) {
