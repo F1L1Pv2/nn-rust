@@ -34,9 +34,6 @@ enum Signal {
     Stop,
 }
 
-//create batch struct
-
-//make it printable
 #[derive(Debug, Clone)]
 struct Batch {
     input: Mat,
