@@ -39,19 +39,19 @@ pub struct Renderinfo {
     pub learning_rate: f32,
 }
 
-pub fn draw_frame(nn: &NN, info: &mut Renderinfo) {
-    let nn = nn.clone();
+pub fn draw_frame(nn: &mut NN, info: &mut Renderinfo) {
+    // let nn_clone = nn.clone();
     let (width, height) = (screen_width(), screen_height());
 
     // Skip epoch 0 because the value is already in the cost history (from creating the struct)
     if info.epoch < EPOCH_MAX && !info.paused && info.epoch != 0 {
-        let cost = NN::cost(&nn, &info.t_input, &info.t_output);
+        let cost = NN::cost(nn, &info.t_input, &info.t_output);
 
         info.cost = cost;
         info.cost_history.push(cost);
     }
 
-    draw_nn(&nn, width, height * 0.8);
+    draw_nn(nn, width, height * 0.8);
     draw_graph(width, height, info);
     draw_data(info, nn);
 
@@ -174,7 +174,7 @@ fn draw_graph(width: f32, height: f32, info: &Renderinfo) {
     }
 }
 
-fn draw_data(info: &Renderinfo, mut nn: NN) {
+fn draw_data(info: &Renderinfo, nn: &mut NN) {
     // Top right parameters
     draw_text(
         format!(
@@ -197,26 +197,26 @@ fn draw_data(info: &Renderinfo, mut nn: NN) {
     );
 
     // Write the testing results at the bottom left
-    for i in 0..info.t_input.rows {
-        for j in 0..nn.activations[0].data[0].len() {
-            nn.activations[0].data[0][j] = info.t_input.data[i][j];
-        }
+    // for i in 0..info.t_input.rows {
+    //     for j in 0..nn.activations[0].data[0].len() {
+    //         nn.activations[0].data[0][j] = info.t_input.data[i][j];
+    //     }
 
-        NN::forward(&mut nn);
-        draw_text(
-            format!(
-                // Input | Output
-                "{:?} -> {:?}",
-                info.t_input.data[i],
-                nn.activations[nn.count - 1].data[0] // -1 because the last activation is the output
-            )
-            .as_str(),
-            0.,
-            screen_height() - 20. - i as f32 * 10.,
-            20.,
-            TEXT_COLOR,
-        );
-    }
+    //     NN::forward(nn);
+    //     draw_text(
+    //         format!(
+    //             // Input | Output
+    //             "{:?} -> {:?}",
+    //             info.t_input.data[i],
+    //             nn.activations[nn.count - 1].data[0] // -1 because the last activation is the output
+    //         )
+    //         .as_str(),
+    //         0.,
+    //         screen_height() - 20. - i as f32 * 10.,
+    //         20.,
+    //         TEXT_COLOR,
+    //     );
+    // }
 }
 
 pub fn window_conf() -> Conf {

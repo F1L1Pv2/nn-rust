@@ -34,21 +34,24 @@ impl NN {
     }
 
     pub fn forward(nn: &mut NN) {
-        for i in 0..nn.count - 1 {
-            let mut new_nn = nn.clone();
-            Mat::dot(
-                &mut new_nn.activations[i + 1],
-                &nn.activations[i],
-                &nn.weights[i],
-            );
-            nn.activations[i + 1] = new_nn.activations[i + 1].clone();
-            Mat::sum(&mut nn.activations[i + 1], &nn.biases[i]);
-            Mat::sig(&mut nn.activations[i + 1]);
-        }
+    for i in 0..nn.count - 1 {
+        let mut temp = Mat::new(&[&[0.0]]);
+        temp.rows = nn.activations[i + 1].rows;
+        temp.cols = nn.activations[i + 1].cols;
+        temp.data = vec![vec![0.0; temp.cols]; temp.rows];
+        Mat::dot(
+            &mut temp,
+            &nn.activations[i],
+            &nn.weights[i],
+        );
+        nn.activations[i + 1] = temp;
+        Mat::sum(&mut nn.activations[i + 1], &nn.biases[i]);
+        Mat::sig(&mut nn.activations[i + 1]);
     }
+}
 
-    pub fn cost(nn: &NN, t_input: &Mat, t_output: &Mat) -> f32 {
-        let mut nn = nn.clone();
+    pub fn cost(nn: &mut NN, t_input: &Mat, t_output: &Mat) -> f32 {
+        //let mut nn = nn.clone();
         assert_eq!(t_input.rows, t_output.rows);
         assert_eq!(t_output.cols, nn.activations[nn.count - 1].cols);
         let n = t_input.rows;
@@ -60,7 +63,7 @@ impl NN {
             let y: Mat = Mat::row(t_output, i);
 
             Mat::copy(&mut nn_input!(nn), &x);
-            Self::forward(&mut nn);
+            Self::forward(nn);
             let q = t_output.cols;
             for j in 0..q {
                 let diff: f32 = nn_output!(nn).data[0][j] - y.data[0][j];

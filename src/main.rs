@@ -13,7 +13,7 @@ use macroquad::rand::ChooseRandom;
 mod draw;
 use draw::{draw_frame, Renderinfo, window_conf, BACKGROUND_COLOR};
 
-const EPOCH_MAX: i32 = 100_000;
+const EPOCH_MAX: i32 = 1000;
 const LEARNING_RATE: f32 = 1.;
 
 
@@ -168,7 +168,7 @@ async fn main() {
             // Calculate first cost for creating the struct
             let mut nn = nn.lock().unwrap();
             NN::randomize(&mut nn, -1.0, 1.0);
-            let cost = NN::cost(&nn, &t_input, &t_output);
+            let cost = NN::cost(&mut nn, &t_input, &t_output);
             println!("Initial cost: {}", cost);
             info = Arc::new(Mutex::new(Renderinfo {
                 epoch: 0,
@@ -185,7 +185,7 @@ async fn main() {
         clear_background(BACKGROUND_COLOR);
         {
             let mut info = info.lock().unwrap();
-            draw_frame(&nn.lock().unwrap(), &mut info);
+            draw_frame(&mut nn.lock().unwrap(), &mut info);
         }
         next_frame().await;
 
@@ -298,7 +298,7 @@ async fn main() {
             clear_background(BACKGROUND_COLOR);
             {
                 let mut info = info.lock().unwrap();
-                draw_frame(&nn.lock().unwrap(), &mut info);
+                draw_frame(&mut nn.lock().unwrap(), &mut info);
             }
             next_frame().await;
         }
