@@ -54,7 +54,7 @@ async fn main() {
 
     let image_data2 = image2.to_rgba8();
 
-    let mut value = 0.;
+    let mut value = 0.5;
 
     let nn_structure = &[3, 28,28,9, 3];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
