@@ -16,7 +16,7 @@ use draw::{draw_frame, lerp, window_conf, Renderinfo, BACKGROUND_COLOR};
 // mod nn;
 
 const EPOCH_MAX: i32 = 100_000;
-const LEARNING_RATE: f32 = 1e-1;
+const LEARNING_RATE: f32 = 1.;
 
 const OUT_IMG_WIDTH: u32 = 256;
 const OUT_IMG_HEIGHT: u32 = 256;
