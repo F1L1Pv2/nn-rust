@@ -186,8 +186,11 @@ fn draw_preview_image(width: usize, height: usize,scale: f32, nn: &mut NN){
             nn.activations[0].data[0][0] = j as f32 / width as f32;
             nn.activations[0].data[0][1] = i as f32 / height as f32;
             NN::forward(nn);
-            let value = nn.activations[nn.count - 1].data[0][0];
-            image.set_pixel(j as u32, i as u32, Color{r: value, g: value, b: value, a: 1.});
+            // let value = nn.activations[nn.count - 1].data[0][0];
+            let red = nn.activations[nn.count - 1].data[0][0];
+            let green = nn.activations[nn.count - 1].data[0][1];
+            let blue = nn.activations[nn.count - 1].data[0][2];
+            image.set_pixel(j as u32, i as u32, Color{r: red, g: green, b: blue, a: 1.});
         }
     }
 

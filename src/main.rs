@@ -48,7 +48,7 @@ async fn main() {
 
     let image_data = image.to_rgba8();
 
-    let nn_structure = &[2, 28,28,9, 1];
+    let nn_structure = &[2, 28,28,9, 3];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
     let gradient = NN::new(nn_structure);
 
@@ -67,14 +67,19 @@ async fn main() {
         t_input.data = vec![];
         t_output.data = vec![];
         t_input.cols = 2;
-        t_output.cols = 1;
+        t_output.cols = 3;
 
         for (x, y, pixel) in image_data.enumerate_pixels() {
             t_input.push_row(&[
                 x as f32 / image_data.width() as f32,
                 y as f32 / image_data.height() as f32,
             ]);
-            t_output.push_row(&[pixel[0] as f32 / 255.]);
+            // t_output.push_row(&[pixel[0] as f32 / 255.]);
+            t_output.push_row(&[
+                pixel[0] as f32 / 255.,
+                pixel[1] as f32 / 255.,
+                pixel[2] as f32 / 255.,
+            ]);
         }
 
         t_input.rows = t_input.data.len();
@@ -217,8 +222,11 @@ async fn main() {
                     nn.activations[0] = input.clone();
                     NN::forward(&mut nn);
                     let output = &nn.activations[nn.activations.len() - 1];
-                    let color = (output.data[0][0] * 255.) as u8;
-                    *pixel = image::Rgba([color, color, color, 255]);
+                    // let color = (output.data[0][0] * 255.) as u8;
+                    let red = (output.data[0][0] * 255.) as u8;
+                    let green = (output.data[0][1] * 255.) as u8;
+                    let blue = (output.data[0][2] * 255.) as u8;
+                    *pixel = image::Rgba([red, green, blue, 255]);
                 }
 
                 image.save("output.png").unwrap();
