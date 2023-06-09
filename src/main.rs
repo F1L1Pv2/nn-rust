@@ -42,13 +42,21 @@ async fn main() {
     //     None => Mode::Normal,
     // };
 
-    let image_path = argv.nth(1).expect("No image path given");
+    let image_path = argv.nth(1).expect("No image1 path given");
 
     let image = image::open(image_path).unwrap();
 
     let image_data = image.to_rgba8();
 
-    let nn_structure = &[2, 28,28,9, 3];
+    let image_path2 = argv.nth(0).expect("No image2 path given");
+
+    let image2 = image::open(image_path2).unwrap();
+
+    let image_data2 = image2.to_rgba8();
+
+    let mut value = 0.;
+
+    let nn_structure = &[3, 28,28,9, 3];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
     let gradient = NN::new(nn_structure);
 
@@ -66,13 +74,28 @@ async fn main() {
 
         t_input.data = vec![];
         t_output.data = vec![];
-        t_input.cols = 2;
+        t_input.cols = 3;
         t_output.cols = 3;
 
         for (x, y, pixel) in image_data.enumerate_pixels() {
             t_input.push_row(&[
                 x as f32 / image_data.width() as f32,
                 y as f32 / image_data.height() as f32,
+                0.,
+            ]);
+            // t_output.push_row(&[pixel[0] as f32 / 255.]);
+            t_output.push_row(&[
+                pixel[0] as f32 / 255.,
+                pixel[1] as f32 / 255.,
+                pixel[2] as f32 / 255.,
+            ]);
+        }
+
+        for (x, y, pixel) in image_data2.enumerate_pixels() {
+            t_input.push_row(&[
+                x as f32 / image_data.width() as f32,
+                y as f32 / image_data.height() as f32,
+                1.,
             ]);
             // t_output.push_row(&[pixel[0] as f32 / 255.]);
             t_output.push_row(&[
@@ -119,7 +142,7 @@ async fn main() {
         clear_background(BACKGROUND_COLOR);
         {
             let mut info = info.lock().unwrap();
-            draw_frame(&mut nn.lock().unwrap(), &mut info);
+            draw_frame(&mut nn.lock().unwrap(), &mut info, &mut value);
         }
         next_frame().await;
 
@@ -218,6 +241,7 @@ async fn main() {
                     let input = Mat::new(&[&[
                         x as f32 / OUT_IMG_WIDTH as f32,
                         y as f32 / OUT_IMG_HEIGHT as f32,
+                        value,
                     ]]);
                     nn.activations[0] = input.clone();
                     NN::forward(&mut nn);
@@ -236,7 +260,7 @@ async fn main() {
             clear_background(BACKGROUND_COLOR);
             {
                 let mut info = info.lock().unwrap();
-                draw_frame(&mut nn.lock().unwrap(), &mut info);
+                draw_frame(&mut nn.lock().unwrap(), &mut info, &mut value);
             }
             next_frame().await;
         }
