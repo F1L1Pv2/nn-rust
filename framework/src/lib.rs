@@ -48,7 +48,8 @@ impl NN {
             Mat::dot(&mut temp, &nn.activations[i], &nn.weights[i]);
             nn.activations[i + 1] = temp;
             Mat::sum(&mut nn.activations[i + 1], &nn.biases[i]);
-            Mat::sig(&mut nn.activations[i + 1]);
+            // Mat::sig(&mut nn.activations[i + 1]);
+            Mat::activationFunction(&mut nn.activations[i + 1]);
         }
     }
 
@@ -198,6 +199,8 @@ impl NN {
         let n = t_input.rows;
         assert_eq!(nn.activations[nn.count - 1].cols, t_output.cols);
 
+        
+
         NN::zero(g);
 
         for i in 0..n {
@@ -217,12 +220,15 @@ impl NN {
                 for j in 0..nn.activations[l + 1].cols {
                     let a = nn.activations[l + 1].data[0][j];
                     let da = g.activations[l + 1].data[0][j];
-                    g.biases[l].data[0][j] += da * a * (1.0 - a);
+                    // g.biases[l].data[0][j] += da * a * (1.0 - a);
+                    g.biases[l].data[0][j] += da * Mat::activationDerivative(a);
                     for k in 0..nn.activations[l].cols {
                         let pa = nn.activations[l].data[0][k];
                         let w = nn.weights[l].data[k][j];
-                        g.weights[l].data[k][j] += da * a * (1.0 - a) * pa;
-                        g.activations[l].data[0][k] += da * a * (1.0 - a) * w;
+                        // g.weights[l].data[k][j] += da * a * (1.0 - a) * pa;
+                        // g.activations[l].data[0][k] += da * a * (1.0 - a) * w;
+                        g.weights[l].data[k][j] += da * Mat::activationDerivative(a) * pa;
+                        g.activations[l].data[0][k] += da * Mat::activationDerivative(a) * w;
                     }
                 }
             }
@@ -354,6 +360,71 @@ impl Mat {
         }
     }
 
+    pub fn hyperbolic(dst: &mut Mat) {
+        for row in &mut dst.data {
+            for val in row.iter_mut() {
+                *val = tanhf(*val);
+            }
+        }
+    }
+
+    pub fn relu(dst: &mut Mat) {
+        for row in &mut dst.data {
+            for val in row.iter_mut() {
+                *val = reluf(*val);
+                clampf(*val, 0., 1.);
+            }
+        }
+    }
+
+    pub fn gelu(dst: &mut Mat) {
+        for row in &mut dst.data {
+            for val in row.iter_mut() {
+                *val = geluf(*val);
+                // clampf(*val, 0., 1.);
+            }
+        }
+    }
+
+    pub fn activationFunction(dst: &mut Mat) {
+        Mat::sig(dst)
+    }
+
+    pub fn activationDerivative(x: f32) -> f32 {
+        Mat::activationSigmoidDerivative(x)
+    }
+
+    pub fn activationHyperbolicDerivative(x: f32) -> f32 {
+        1.0 - x * x
+    }
+
+
+    pub fn activationSigmoidDerivative(x: f32) -> f32 {
+        // let s = sigmoidf(x);
+        x * (1.0 - x)
+    }
+
+    pub fn activationReluDerivative(x: f32) -> f32 {
+        if x > 0.0 {
+            1.0
+        } else {
+            0.0
+        }
+    }
+
+    /*
+    def gelu_derivative(x):
+    cdf = 0.5 * (1 + np.tanh(np.sqrt(2 / np.pi) * (x + 0.044715 * np.power(x, 3))))
+    pdf = np.exp(-np.power(x, 2) / 2) / np.sqrt(2 * np.pi)
+    return 0.5 * (1 + np.tanh(np.sqrt(2 / np.pi) * (x + 0.044715 * np.power(x, 3)))) + x * (1 - np.power(cdf, 2)) * np.sqrt(2 / np.pi) * 0.0356774 + pdf * (0.0356774 * np.power(x, 2) + 0.797885 * x + 0.0356774)
+     */
+
+    pub fn activationGeluDerivative(x: f32) -> f32 {
+        let cdf = 0.5 * (1.0 + (2.0 / std::f32::consts::PI).sqrt() * (x + 0.044715 * x.powi(3)).tanh());
+        let pdf = (-x.powi(2) / 2.0).exp() / (2.0 * std::f32::consts::PI).sqrt();
+        0.5 * (1.0 + (2.0 / std::f32::consts::PI).sqrt() * (x + 0.044715 * x.powi(3)).tanh()) + x * (1.0 - cdf.powi(2)) * (2.0 / std::f32::consts::PI).sqrt() * 0.0356774 + pdf * (0.0356774 * x.powi(2) + 0.797885 * x + 0.0356774)    
+    }
+
     pub fn row(mat: &Mat, row: usize) -> Mat {
         Mat {
             rows: 1,
@@ -373,8 +444,40 @@ impl Mat {
     }
 }
 
+pub fn reluf(x: f32) -> f32 {
+    if x > 0.0 {
+        x
+    } else {
+        0.0
+    }
+}
+
 pub fn sigmoidf(x: f32) -> f32 {
     1.0 / (1.0 + (-x).exp())
+}
+
+/*
+def gelu(x):
+    return 0.5 * x * (1 + np.tanh(np.sqrt(2 / np.pi) * (x + 0.044715 * np.power(x, 3))))
+
+ */
+
+pub fn geluf(x: f32) -> f32 {
+    0.5 * x * (1.0 + (2.0 / std::f32::consts::PI).sqrt() * (x + 0.044715 * x.powi(3)).tanh())
+}
+
+pub fn tanhf(x: f32) -> f32 {
+    x.tanh()
+}
+
+pub fn clampf(x: f32, min: f32, max: f32) -> f32 {
+    if x < min {
+        min
+    } else if x > max {
+        max
+    } else {
+        x
+    }
 }
 
 pub fn rand_float(min: f32, max: f32) -> f32 {

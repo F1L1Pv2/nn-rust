@@ -16,10 +16,10 @@ use draw::{draw_frame, lerp, window_conf, Renderinfo, BACKGROUND_COLOR};
 // mod nn;
 
 const EPOCH_MAX: i32 = 100_000;
-const LEARNING_RATE: f32 = 1.;
+const LEARNING_RATE: f32 = 1e-1;
 
-const OUT_IMG_WIDTH: u32 = 400;
-const OUT_IMG_HEIGHT: u32 = 400;
+const OUT_IMG_WIDTH: u32 = 256;
+const OUT_IMG_HEIGHT: u32 = 256;
 const BATCH_SIZE: usize = 28;
 
 // enum Mode {
@@ -48,7 +48,7 @@ async fn main() {
 
     let image_data = image.to_rgba8();
 
-    let nn_structure = &[2, 10, 10, 9, 1];
+    let nn_structure = &[2, 28,28,9, 1];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
     let gradient = NN::new(nn_structure);
 
@@ -166,6 +166,7 @@ async fn main() {
                     {
                         let mut nn = nn_clone.lock().unwrap();
                         NN::backprop(&mut nn, &mut gradient, &batch.input, &batch.output);
+                        // NN::finite_diff(&mut nn, &mut gradient, 1e-4, &batch.input, &batch.output);
                         NN::learn(&mut nn, &gradient, lr);
                     }
                 }

@@ -14,7 +14,7 @@ Cargo.lock
 *.pdb
 
 .vscode/
-nn.json
-skull.png
-person.png
-output.png
+./nn.json
+./skull.png
+./person.png
+./output.png
