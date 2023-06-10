@@ -44,15 +44,15 @@ async fn main() {
 
     let image_path = argv.nth(1).expect("No image1 path given");
 
-    let image = image::open(image_path).unwrap();
+    // let image = image::open(image_path).unwrap();
 
-    let image_data = image.to_rgba8();
+    let image_data = image::open(image_path).unwrap().to_rgba8();
 
     let image_path2 = argv.nth(0).expect("No image2 path given");
 
-    let image2 = image::open(image_path2).unwrap();
+    let image_data2 = image::open(image_path2).unwrap().to_rgba8();
 
-    let image_data2 = image2.to_rgba8();
+    // let image_data2 = image2.to_rgba8();
 
     let mut value = 0.5;
 

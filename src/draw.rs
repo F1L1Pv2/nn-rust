@@ -76,7 +76,7 @@ pub fn draw_frame(nn: &mut NN, info: &mut Renderinfo, value: &mut f32 ) {
         pressed = false;
     }
 
-    slider(value, 32., screen_height()-256., 256., 32., pressed);
+    slider(value, 16., screen_height()-256., 256., 16., pressed);
     // println!("value: {}", value);
 
     draw_text("r - reset", width - 100., 20., 20., TEXT_COLOR);
