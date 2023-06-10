@@ -1,4 +1,5 @@
 use rand::{seq::SliceRandom, Rng};
+use std::f32::consts::PI;
 
 #[macro_export]
 macro_rules! nn_input {
@@ -49,7 +50,7 @@ impl NN {
             nn.activations[i + 1] = temp;
             Mat::sum(&mut nn.activations[i + 1], &nn.biases[i]);
             // Mat::sig(&mut nn.activations[i + 1]);
-            Mat::activationFunction(&mut nn.activations[i + 1]);
+            Mat::activation_function(&mut nn.activations[i + 1]);
         }
     }
 
@@ -199,8 +200,6 @@ impl NN {
         let n = t_input.rows;
         assert_eq!(nn.activations[nn.count - 1].cols, t_output.cols);
 
-        
-
         NN::zero(g);
 
         for i in 0..n {
@@ -221,14 +220,14 @@ impl NN {
                     let a = nn.activations[l + 1].data[0][j];
                     let da = g.activations[l + 1].data[0][j];
                     // g.biases[l].data[0][j] += da * a * (1.0 - a);
-                    g.biases[l].data[0][j] += da * Mat::activationDerivative(a);
+                    g.biases[l].data[0][j] += da * Mat::activation_derivative(a);
                     for k in 0..nn.activations[l].cols {
                         let pa = nn.activations[l].data[0][k];
                         let w = nn.weights[l].data[k][j];
                         // g.weights[l].data[k][j] += da * a * (1.0 - a) * pa;
                         // g.activations[l].data[0][k] += da * a * (1.0 - a) * w;
-                        g.weights[l].data[k][j] += da * Mat::activationDerivative(a) * pa;
-                        g.activations[l].data[0][k] += da * Mat::activationDerivative(a) * w;
+                        g.weights[l].data[k][j] += da * Mat::activation_derivative(a) * pa;
+                        g.activations[l].data[0][k] += da * Mat::activation_derivative(a) * w;
                     }
                 }
             }
@@ -386,25 +385,24 @@ impl Mat {
         }
     }
 
-    pub fn activationFunction(dst: &mut Mat) {
+    pub fn activation_function(dst: &mut Mat) {
         Mat::sig(dst)
     }
 
-    pub fn activationDerivative(x: f32) -> f32 {
-        Mat::activationSigmoidDerivative(x)
+    pub fn activation_derivative(x: f32) -> f32 {
+        Mat::activation_sigmoid_derivative(x)
     }
 
-    pub fn activationHyperbolicDerivative(x: f32) -> f32 {
+    pub fn activation_hyperbolic_derivative(x: f32) -> f32 {
         1.0 - x * x
     }
 
-
-    pub fn activationSigmoidDerivative(x: f32) -> f32 {
+    pub fn activation_sigmoid_derivative(x: f32) -> f32 {
         // let s = sigmoidf(x);
         x * (1.0 - x)
     }
 
-    pub fn activationReluDerivative(x: f32) -> f32 {
+    pub fn activation_relu_derivative(x: f32) -> f32 {
         if x > 0.0 {
             1.0
         } else {
@@ -419,10 +417,12 @@ impl Mat {
     return 0.5 * (1 + np.tanh(np.sqrt(2 / np.pi) * (x + 0.044715 * np.power(x, 3)))) + x * (1 - np.power(cdf, 2)) * np.sqrt(2 / np.pi) * 0.0356774 + pdf * (0.0356774 * np.power(x, 2) + 0.797885 * x + 0.0356774)
      */
 
-    pub fn activationGeluDerivative(x: f32) -> f32 {
-        let cdf = 0.5 * (1.0 + (2.0 / std::f32::consts::PI).sqrt() * (x + 0.044715 * x.powi(3)).tanh());
-        let pdf = (-x.powi(2) / 2.0).exp() / (2.0 * std::f32::consts::PI).sqrt();
-        0.5 * (1.0 + (2.0 / std::f32::consts::PI).sqrt() * (x + 0.044715 * x.powi(3)).tanh()) + x * (1.0 - cdf.powi(2)) * (2.0 / std::f32::consts::PI).sqrt() * 0.0356774 + pdf * (0.0356774 * x.powi(2) + 0.797885 * x + 0.0356774)    
+    pub fn activation_gelu_derivative(x: f32) -> f32 {
+        let cdf = 0.5 * (1.0 + (2.0 / PI).sqrt() * (x + 0.044715 * x.powi(3)).tanh());
+        let pdf = (-x.powi(2) / 2.0).exp() / (2.0 * PI).sqrt();
+        0.5 * (1.0 + (2.0 / PI).sqrt() * (x + 0.044715 * x.powi(3)).tanh())
+            + x * (1.0 - cdf.powi(2)) * (2.0 / PI).sqrt() * 0.0356774
+            + pdf * (0.0356774 * x.powi(2) + 0.797885 * x + 0.0356774)
     }
 
     pub fn row(mat: &Mat, row: usize) -> Mat {
@@ -463,7 +463,7 @@ def gelu(x):
  */
 
 pub fn geluf(x: f32) -> f32 {
-    0.5 * x * (1.0 + (2.0 / std::f32::consts::PI).sqrt() * (x + 0.044715 * x.powi(3)).tanh())
+    0.5 * x * (1.0 + (2.0 / PI).sqrt() * (x + 0.044715 * x.powi(3)).tanh())
 }
 
 pub fn tanhf(x: f32) -> f32 {

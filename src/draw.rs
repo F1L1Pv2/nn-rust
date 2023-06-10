@@ -39,7 +39,7 @@ pub struct Renderinfo {
     pub learning_rate: f32,
 }
 
-pub fn draw_frame(nn: &mut NN, info: &mut Renderinfo, value: &mut f32 ) {
+pub fn draw_frame(nn: &mut NN, info: &mut Renderinfo, value: &mut f32) {
     // let nn_clone = nn.clone();
     let (width, height) = (screen_width(), screen_height());
 
@@ -55,10 +55,9 @@ pub fn draw_frame(nn: &mut NN, info: &mut Renderinfo, value: &mut f32 ) {
     draw_graph(width, height, info);
     draw_data(info, nn);
 
-
-    draw_preview_image(28, 28, 8. ,nn,0.,0.,0.);
-    draw_preview_image(28, 28, 8. ,nn,1.,256.,0.);
-    draw_preview_image(28, 28, 8. ,nn,*value,512., 0.);
+    draw_preview_image(28, 28, 8., nn, 0., 0., 0.);
+    draw_preview_image(28, 28, 8., nn, 1., 256., 0.);
+    draw_preview_image(28, 28, 8., nn, *value, 512., 0.);
     let mut pressed = false;
 
     // if left mouse button is pressed
@@ -66,7 +65,7 @@ pub fn draw_frame(nn: &mut NN, info: &mut Renderinfo, value: &mut f32 ) {
     //     // pressed = true;
     // }
 
-    if is_mouse_button_down(MouseButton::Left){
+    if is_mouse_button_down(MouseButton::Left) {
         pressed = true;
     }
 
@@ -76,7 +75,7 @@ pub fn draw_frame(nn: &mut NN, info: &mut Renderinfo, value: &mut f32 ) {
         pressed = false;
     }
 
-    slider(value, 16., screen_height()-256., 256., 16., pressed);
+    slider(value, 16., screen_height() - 256., 256., 16., pressed);
     // println!("value: {}", value);
 
     draw_text("r - reset", width - 100., 20., 20., TEXT_COLOR);
@@ -92,37 +91,32 @@ pub fn draw_frame(nn: &mut NN, info: &mut Renderinfo, value: &mut f32 ) {
     draw_text("(while pausing)", width - 120., 100., 20., TEXT_COLOR);
 }
 
-
-fn slider(value: &mut f32, x: f32,y: f32, width: f32, height: f32, pressed: bool){
+fn slider(value: &mut f32, x: f32, y: f32, width: f32, height: f32, pressed: bool) {
     //get mouse position
     let mouse_pos = mouse_position();
 
     let radius = height * 1.01;
-    let circleX = x + (width * * value);
-    let circleY = y + radius/2.;
+    let circle_x = x + (width * *value);
+    let circle_y = y + radius / 2.;
 
     draw_rectangle(x, y, width, height, RED);
-    draw_circle(circleX, circleY, radius, WHITE);
+    draw_circle(circle_x, circle_y, radius, WHITE);
 
-
-    if (mouse_pos.0 - circleX).abs() < radius && (mouse_pos.1 - circleY).abs() <radius && pressed{
+    if (mouse_pos.0 - circle_x).abs() < radius && (mouse_pos.1 - circle_y).abs() < radius && pressed
+    {
         // println!("Mouse position: {:?}", mouse_pos);
-        
-        if (mouse_pos.0 - x) > 0.{
 
-            *value = (mouse_pos.0 - x)/width;
-            if value > &mut 1.{
-               *value = 1.;
+        if (mouse_pos.0 - x) > 0. {
+            *value = (mouse_pos.0 - x) / width;
+            if value > &mut 1. {
+                *value = 1.;
             }
-            if value < &mut 0.{
+            if value < &mut 0. {
                 *value = 0.;
             }
-
         }
         // println!("Value: {}", *value);
-        
     }
-
 }
 
 fn draw_nn(nn: &NN, width: f32, height: f32) {
@@ -231,10 +225,17 @@ fn draw_graph(width: f32, height: f32, info: &Renderinfo) {
     }
 }
 
-fn draw_preview_image(width: usize, height: usize,scale: f32, nn: &mut NN, id: f32, xOff: f32, yOff: f32){
-
+fn draw_preview_image(
+    width: usize,
+    height: usize,
+    scale: f32,
+    nn: &mut NN,
+    id: f32,
+    x_off: f32,
+    y_off: f32,
+) {
     let mut image = Image::gen_image_color(width as u16, height as u16, BLACK);
-    
+
     for i in 0..height {
         for j in 0..width {
             nn.activations[0].data[0][0] = j as f32 / width as f32;
@@ -245,23 +246,34 @@ fn draw_preview_image(width: usize, height: usize,scale: f32, nn: &mut NN, id: f
             let red = nn.activations[nn.count - 1].data[0][0];
             let green = nn.activations[nn.count - 1].data[0][1];
             let blue = nn.activations[nn.count - 1].data[0][2];
-            image.set_pixel(j as u32, i as u32, Color{r: red, g: green, b: blue, a: 1.});
+            image.set_pixel(
+                j as u32,
+                i as u32,
+                Color {
+                    r: red,
+                    g: green,
+                    b: blue,
+                    a: 1.,
+                },
+            );
         }
     }
 
-
-
     let texture = Texture2D::from_image(&image);
 
-    draw_texture_ex(texture, 0. + xOff, screen_height()-(height as f32* scale) + yOff, WHITE, DrawTextureParams {
-        dest_size: Some(Vec2::new(width as f32* scale, height as f32 *scale)),
-        ..Default::default()
-    });
-
-
+    draw_texture_ex(
+        texture,
+        0. + x_off,
+        screen_height() - (height as f32 * scale) + y_off,
+        WHITE,
+        DrawTextureParams {
+            dest_size: Some(Vec2::new(width as f32 * scale, height as f32 * scale)),
+            ..Default::default()
+        },
+    );
 }
 
-fn draw_data(info: &Renderinfo, nn: &mut NN) {
+fn draw_data(info: &Renderinfo, _nn: &mut NN) {
     // Top right parameters
     draw_text(
         format!(

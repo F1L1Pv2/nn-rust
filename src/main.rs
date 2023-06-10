@@ -48,7 +48,7 @@ async fn main() {
 
     let image_data = image::open(image_path).unwrap().to_rgba8();
 
-    let image_path2 = argv.nth(0).expect("No image2 path given");
+    let image_path2 = argv.next().expect("No image2 path given");
 
     let image_data2 = image::open(image_path2).unwrap().to_rgba8();
 
@@ -56,13 +56,13 @@ async fn main() {
 
     let mut value = 0.5;
 
-    let nn_structure = &[3, 28,28,9, 3];
+    let nn_structure = &[3, 28, 28, 9, 3];
     let nn = Arc::new(Mutex::new(NN::new(nn_structure)));
     let gradient = NN::new(nn_structure);
 
     'reset: loop {
         // Set random seed
-        rand::srand(chrono::Utc::now().timestamp_millis() as u64);
+        rand::srand(chrono::Utc::now().timestamp_millis().unsigned_abs());
 
         // XOR Example
         // let t_input = Mat::new(&[&[0.0, 0.0], &[0.0, 1.0], &[1.0, 0.0], &[1.0, 1.0]]);
@@ -85,9 +85,9 @@ async fn main() {
             ]);
             // t_output.push_row(&[pixel[0] as f32 / 255.]);
             t_output.push_row(&[
-                pixel[0] as f32 / 255.,
-                pixel[1] as f32 / 255.,
-                pixel[2] as f32 / 255.,
+                f32::from(pixel[0]) / 255.,
+                f32::from(pixel[1]) / 255.,
+                f32::from(pixel[2]) / 255.,
             ]);
         }
 
@@ -99,9 +99,9 @@ async fn main() {
             ]);
             // t_output.push_row(&[pixel[0] as f32 / 255.]);
             t_output.push_row(&[
-                pixel[0] as f32 / 255.,
-                pixel[1] as f32 / 255.,
-                pixel[2] as f32 / 255.,
+                f32::from(pixel[0]) / 255.,
+                f32::from(pixel[1]) / 255.,
+                f32::from(pixel[2]) / 255.,
             ]);
         }
 
@@ -126,7 +126,7 @@ async fn main() {
             let mut nn = nn.lock().unwrap();
             NN::randomize(&mut nn, -1.0, 1.0);
             let cost = NN::cost(&mut nn, &t_input, &t_output);
-            println!("Initial cost: {}", cost);
+            println!("Initial cost: {cost}");
             info = Arc::new(Mutex::new(Renderinfo {
                 epoch: 0,
                 cost,
@@ -176,11 +176,11 @@ async fn main() {
                         Signal::Stop => {
                             break 'training;
                         }
-                        _ => {}
+                        Signal::Resume => {} // Should never happen
                     }
                 }
 
-                for batch in batches.iter() {
+                for batch in &batches {
                     {
                         let mut info = info_clone.lock().unwrap();
                         info.epoch = i;
@@ -220,14 +220,20 @@ async fn main() {
             if is_key_pressed(KeyCode::P) {
                 if paused {
                     // Send a "resume" signal to the training thread
-                    let _ = tx.send(Signal::Resume);
-                    paused = false;
-                    println!("Resumed");
+                    if let Err(e) = tx.send(Signal::Resume) {
+                        eprintln!("Failed to send resume signal: {e}");
+                    } else {
+                        paused = false;
+                        println!("Resumed");
+                    }
                 } else {
                     // Send a "pause" signal to the training thread
-                    let _ = tx.send(Signal::Pause);
-                    paused = true;
-                    println!("Paused");
+                    if let Err(e) = tx.send(Signal::Pause) {
+                        eprintln!("Failed to send pause signal: {e}");
+                    } else {
+                        paused = true;
+                        println!("Paused");
+                    }
                 }
             }
 
