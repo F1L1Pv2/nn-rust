@@ -6,6 +6,9 @@ Neural network framework made 100% in Rust. Code based on [nn.h](https://github.
 
 https://github.com/DuckyBlender/nn-rust/assets/42645784/dbaabf6b-c1ff-4d30-ae2a-d0cd8db4ce78
 
+## Info
+
+The dev branch can be in a broken state and should be only used if you know what you're doing!
 
 ### Todo
 
@@ -14,5 +17,5 @@ https://github.com/DuckyBlender/nn-rust/assets/42645784/dbaabf6b-c1ff-4d30-ae2a-
 - [x] ~Multithreading~ The rayon crate is slow in this project for some reason
 - [x] Make the GUI in a different thread so it doesn't limit epoch count per second
 - [ ] Saving and loading states
-- [ ] Image interpolation
+- [ ] Image interpolation (in dev branch)
 - [ ] Multi-image interpolation
