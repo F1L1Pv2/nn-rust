@@ -1,6 +1,6 @@
 # nn-rust
 
-Neural network framework made 100% in Rust. Code based on [nn.h](https://github.com/tsoding/nn.h). UI is threaded :)
+Neural network library made 100% in Rust. Code based on [nn.h](https://github.com/tsoding/nn.h). UI is threaded :)
 
 Made with @F1L1Pv2
 
